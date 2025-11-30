@@ -15,9 +15,14 @@ struct AppState
     float tempChangeStep = 1.0f;
     bool prevUpPressed = false;
     bool prevDownPressed = false;
+    float waterLevel = 0.0f; // 0 empty, 1 full
+    float waterFillPerSecond = 0.12f;
+    float waterAccum = 0.0f;
+    bool prevSpacePressed = false;
 };
 
 void handlePowerToggle(AppState& state, double mouseX, double mouseY, bool mouseDown, const CircleShape& lamp);
 void updateVent(AppState& state, float deltaTime);
 void handleTemperatureInput(AppState& state, bool upPressed, bool downPressed);
 void updateTemperature(AppState& state, float deltaTime);
+void updateWater(AppState& state, float deltaTime, bool spacePressed);

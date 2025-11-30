@@ -49,6 +49,7 @@ int main()
     const Color digitColor{ 0.96f, 0.98f, 1.0f, 1.0f };
     const Color arrowBg{ 0.15f, 0.18f, 0.22f, 1.0f };
     const Color arrowColor{ 0.90f, 0.96f, 1.0f, 1.0f };
+    const Color waterColor{ 0.50f, 0.78f, 0.94f, 0.9f };
 
     const float acWidth = 480.0f;
     const float acHeight = 200.0f;
@@ -88,6 +89,10 @@ int main()
     const float bowlX = (WINDOW_WIDTH - bowlWidth) * 0.5f;
     const float bowlY = acY + acHeight + 120.0f;
     RectShape bowlOutline{ bowlX, bowlY, bowlWidth, bowlHeight, bowlColor };
+    float bowlInnerX = bowlX + bowlThickness;
+    float bowlInnerY = bowlY + bowlThickness;
+    float bowlInnerW = bowlWidth - 2.0f * bowlThickness;
+    float bowlInnerH = bowlHeight - 2.0f * bowlThickness;
 
     auto setCustomCursorIfPresent = [&]()
     {
@@ -128,6 +133,7 @@ int main()
         bool mouseDown = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
         bool upPressed = glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;
         bool downPressed = glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS;
+        bool spacePressed = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
         bool clickStarted = mouseDown && !appState.prevMouseDown;
 
         if (clickStarted && !appState.lockedByFullBowl)
@@ -153,6 +159,7 @@ int main()
         handleTemperatureInput(appState, upPressed, downPressed);
         updateVent(appState, deltaTime);
         updateTemperature(appState, deltaTime);
+        updateWater(appState, deltaTime, spacePressed);
 
         lamp.color = appState.isOn ? lampOnColor : lampOffColor;
         float ventHeight = ventClosedHeight + (ventOpenHeight - ventClosedHeight) * appState.ventOpenness;
@@ -178,6 +185,12 @@ int main()
             drawStatusIcon(renderer, screens[2], appState.desiredTemp, appState.currentTemp);
         }
 
+        if (appState.waterLevel > 0.0f)
+        {
+            float waterHeight = bowlInnerH * appState.waterLevel;
+            float waterY = bowlInnerY + bowlInnerH - waterHeight;
+            renderer.drawRect(bowlInnerX, waterY, bowlInnerW, waterHeight, waterColor);
+        }
         renderer.drawFrame(bowlOutline, bowlThickness);
         RectShape arrowTop{ tempArrowButton.x, tempArrowButton.y, tempArrowButton.w, tempArrowButton.h * 0.5f, arrowBg };
         RectShape arrowBottom{ tempArrowButton.x, tempArrowButton.y + tempArrowButton.h * 0.5f, tempArrowButton.w, tempArrowButton.h * 0.5f, arrowBg };

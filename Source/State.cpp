@@ -69,3 +69,36 @@ void updateTemperature(AppState& state, float deltaTime)
         state.currentTemp += (diff > 0.0f ? step : -step);
     }
 }
+
+void updateWater(AppState& state, float deltaTime, bool spacePressed)
+{
+    bool spaceEdge = spacePressed && !state.prevSpacePressed;
+    if (spaceEdge)
+    {
+        state.waterLevel = 0.0f;
+        state.lockedByFullBowl = false;
+    }
+
+    if (state.isOn && !state.lockedByFullBowl)
+    {
+        state.waterAccum += deltaTime;
+        while (state.waterAccum >= 1.0f)
+        {
+            state.waterAccum -= 1.0f;
+            state.waterLevel += state.waterFillPerSecond;
+        }
+    }
+
+    if (state.waterLevel > 1.0f)
+    {
+        state.waterLevel = 1.0f;
+    }
+
+    if (state.waterLevel >= 1.0f)
+    {
+        state.isOn = false;
+        state.lockedByFullBowl = true;
+    }
+
+    state.prevSpacePressed = spacePressed;
+}
