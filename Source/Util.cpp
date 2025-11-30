@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../Header/stb_image.h"
@@ -149,10 +150,9 @@ GLFWcursor* loadImageToCursor(const char* filePath) {
         image.height = TextureHeight;
         image.pixels = ImageData;
 
-        // Tacka na povrsini slike kursora koja se ponasa kao hitboks, moze se menjati po potrebi
-        // Trenutno je gornji levi ugao, odnosno na 20% visine i 20% sirine slike kursora
-        int hotspotX = TextureWidth / 5;
-        int hotspotY = TextureHeight / 5;
+        // Tacka na povrsini slike kursora koja se ponasa kao hitboks (laserska lampica daljinskog)
+        int hotspotX = 0;
+        int hotspotY = 0;
 
         GLFWcursor* cursor = glfwCreateCursor(&image, hotspotX, hotspotY);
         stbi_image_free(ImageData);
@@ -163,4 +163,73 @@ GLFWcursor* loadImageToCursor(const char* filePath) {
         stbi_image_free(ImageData);
         return nullptr;
     }
+}
+
+GLFWcursor* createProceduralRemoteCursor(int width, int height)
+{
+    if (width <= 0 || height <= 0) return nullptr;
+
+    // Transparent background with simple remote body and a small laser dot at top-left
+    std::vector<unsigned char> pixels(static_cast<size_t>(width) * static_cast<size_t>(height) * 4, 0);
+
+    const unsigned char body[4] = { 210, 215, 223, 255 };
+    const unsigned char edge[4] = { 80, 80, 90, 255 };
+    const unsigned char laser[4] = { 235, 64, 52, 255 };
+
+    auto put = [&](int x, int y, const unsigned char color[4])
+    {
+        if (x < 0 || y < 0 || x >= width || y >= height) return;
+        size_t idx = (static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x)) * 4;
+        pixels[idx + 0] = color[0];
+        pixels[idx + 1] = color[1];
+        pixels[idx + 2] = color[2];
+        pixels[idx + 3] = color[3];
+    };
+
+    int bodyX = 8;
+    int bodyY = 8;
+    int bodyW = width - 16;
+    int bodyH = height - 16;
+
+    for (int y = bodyY; y < bodyY + bodyH; ++y)
+    {
+        for (int x = bodyX; x < bodyX + bodyW; ++x)
+        {
+            put(x, y, body);
+        }
+    }
+
+    for (int y = bodyY; y < bodyY + bodyH; ++y)
+    {
+        put(bodyX, y, edge);
+        put(bodyX + bodyW - 1, y, edge);
+    }
+    for (int x = bodyX; x < bodyX + bodyW; ++x)
+    {
+        put(x, bodyY, edge);
+        put(x, bodyY + bodyH - 1, edge);
+    }
+
+    int r = 5;
+    int cx = r;
+    int cy = r;
+    for (int y = -r; y <= r; ++y)
+    {
+        for (int x = -r; x <= r; ++x)
+        {
+            if (x * x + y * y <= r * r)
+            {
+                put(cx + x, cy + y, laser);
+            }
+        }
+    }
+
+    GLFWimage image;
+    image.width = width;
+    image.height = height;
+    image.pixels = pixels.data();
+
+    int hotspotX = 0;
+    int hotspotY = 0;
+    return glfwCreateCursor(&image, hotspotX, hotspotY);
 }

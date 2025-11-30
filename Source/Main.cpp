@@ -186,14 +186,22 @@ int main()
     auto setCustomCursorIfPresent = [&]()
     {
         const char* cursorPath = "Resources/cursor.png";
+        GLFWcursor* cursor = nullptr;
+
         std::ifstream in(cursorPath, std::ios::binary);
         if (in.good())
         {
-            GLFWcursor* cursor = loadImageToCursor(cursorPath);
-            if (cursor != nullptr)
-            {
-                glfwSetCursor(window, cursor);
-            }
+            cursor = loadImageToCursor(cursorPath);
+        }
+
+        if (cursor == nullptr)
+        {
+            cursor = createProceduralRemoteCursor();
+        }
+
+        if (cursor != nullptr)
+        {
+            glfwSetCursor(window, cursor);
         }
     };
 
