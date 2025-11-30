@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>glfw</id>
+    <version>3.4.0</version>
+    <title>GLFW</title>
+    <authors>Marcus Geelnard, Camilla Berglund</authors>
+    <owners>Sebastian Grottel</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="file">docs\LICENSE.md</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
+    <icon>docs\glfw_sq.png</icon>
+    <readme>docs\README.md</readme>
+    <projectUrl>https://go.grottel.net/nuget/glfw</projectUrl>
+    <description>GLFW is an Open Source, multi-platform library for creating windows with OpenGL contexts and receiving input and events. It is easy to integrate into existing applications and does not lay claim to the main loop.
+
+GLFW is written in C and has native support for Windows, OS X and many Unix-like systems using the X Window System, such as Linux and FreeBSD.
+
+GLFW official pre-compiled binaries (https://www.glfw.org) are packaged for NuGet by S. Grottel (https://go.grottel.net/nuget/glfw).</description>
+    <summary>GLFW is an Open Source, multi-platform library for creating windows with OpenGL contexts and receiving input and events.</summary>
+    <releaseNotes>https://www.glfw.org/changelog.html GLFW official pre-compiled binaries (https://www.glfw.org) are packaged for NuGet by S. Grottel (https://go.grottel.net/nuget/glfw).</releaseNotes>
+    <copyright>Copyright 2017-2024</copyright>
+    <tags>GLFW native nativepackage</tags>
+  </metadata>
+</package>

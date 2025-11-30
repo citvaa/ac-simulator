@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>glew-2.2.0</id>
+    <version>2.2.0.1</version>
+    <title>glew</title>
+    <authors>NerdTronik</authors>
+    <owners>https://github.com/nigels-com</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="file">build\native\LICENSE.txt</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
+    <iconUrl>http://glew.sourceforge.net/glew.png</iconUrl>
+    <description>glew 2.2.0 library package</description>
+    <tags>native, Native, GLEW OpenGL nativepackage</tags>
+  </metadata>
+</package>
