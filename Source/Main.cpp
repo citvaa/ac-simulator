@@ -3,11 +3,33 @@
 
 #include "../Header/Util.h"
 
+#include <array>
+#include <cmath>
+#include <fstream>
+#include <vector>
+
 // Osnovni 2D pipeline: kolor sejder, VAO/VBO za pravougaonik i helper koji radi sa koordinatama u pikselima
 // (poreklo u gornjem levom uglu, y raste na dole)
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 800;
+
+struct Color
+{
+    float r, g, b, a;
+};
+
+struct RectShape
+{
+    float x, y, w, h;
+    Color color;
+};
+
+struct CircleShape
+{
+    float x, y, radius;
+    Color color;
+};
 
 void fillRectVertices(float x, float y, float w, float h, float* outVertices)
 {
@@ -45,7 +67,8 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    glClearColor(0.2f, 0.8f, 0.6f, 1.0f);
+    const Color backgroundColor{ 0.10f, 0.12f, 0.16f, 1.0f };
+    glClearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
 
     // Shader program za bojene 2D pravougaonike
     unsigned int colorProgram = createShader("Shaders/basic.vert", "Shaders/basic.frag");
@@ -64,7 +87,7 @@ int main()
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glBindVertexArray(0);
 
-    auto drawRect = [&](float x, float y, float w, float h, float r, float g, float b, float a)
+    auto drawRect = [&](float x, float y, float w, float h, const Color& color)
     {
         float vertices[12];
         fillRectVertices(x, y, w, h, vertices);
@@ -73,18 +96,123 @@ int main()
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 
         glUseProgram(colorProgram);
-        glUniform4f(uColorLocation, r, g, b, a);
+        glUniform4f(uColorLocation, color.r, color.g, color.b, color.a);
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
     };
 
+    auto drawCircle = [&](float cx, float cy, float radius, const Color& color, int segments = 48)
+    {
+        std::vector<float> vertices;
+        vertices.reserve((segments + 2) * 2);
+
+        float centerX = 2.0f * cx / WINDOW_WIDTH - 1.0f;
+        float centerY = 1.0f - 2.0f * cy / WINDOW_HEIGHT;
+        vertices.push_back(centerX);
+        vertices.push_back(centerY);
+
+        const float twoPi = 6.28318530718f;
+        for (int i = 0; i <= segments; ++i)
+        {
+            float angle = twoPi * static_cast<float>(i) / static_cast<float>(segments);
+            float px = cx + std::cos(angle) * radius;
+            float py = cy + std::sin(angle) * radius;
+
+            float ndcX = 2.0f * px / WINDOW_WIDTH - 1.0f;
+            float ndcY = 1.0f - 2.0f * py / WINDOW_HEIGHT;
+
+            vertices.push_back(ndcX);
+            vertices.push_back(ndcY);
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_DYNAMIC_DRAW);
+
+        glUseProgram(colorProgram);
+        glUniform4f(uColorLocation, color.r, color.g, color.b, color.a);
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, static_cast<GLsizei>(vertices.size() / 2));
+        glBindVertexArray(0);
+    };
+
+    auto drawFrame = [&](const RectShape& rect, float thickness)
+    {
+        drawRect(rect.x, rect.y, rect.w, thickness, rect.color); // top
+        drawRect(rect.x, rect.y + rect.h - thickness, rect.w, thickness, rect.color); // bottom
+        drawRect(rect.x, rect.y, thickness, rect.h, rect.color); // left
+        drawRect(rect.x + rect.w - thickness, rect.y, thickness, rect.h, rect.color); // right
+    };
+
+    const Color bodyColor{ 0.90f, 0.93f, 0.95f, 1.0f };
+    const Color ventColor{ 0.32f, 0.36f, 0.45f, 1.0f };
+    const Color lampOffColor{ 0.22f, 0.18f, 0.20f, 1.0f };
+    const Color screenOffColor{ 0.08f, 0.10f, 0.12f, 1.0f };
+    const Color bowlColor{ 0.78f, 0.82f, 0.88f, 1.0f };
+
+    const float acWidth = 480.0f;
+    const float acHeight = 200.0f;
+    const float acX = (WINDOW_WIDTH - acWidth) * 0.5f;
+    const float acY = 140.0f;
+
+    RectShape acBody{ acX, acY, acWidth, acHeight, bodyColor };
+    RectShape ventBar{ acX + 32.0f, acY + acHeight - 36.0f, acWidth - 64.0f, 18.0f, ventColor };
+    CircleShape lamp{ acX + 44.0f, acY + 40.0f, 14.0f, lampOffColor };
+
+    const float screenWidth = 82.0f;
+    const float screenHeight = 48.0f;
+    const float screenSpacing = 18.0f;
+    const float screenStartX = acX + 190.0f;
+    const float screenY = acY + 64.0f;
+    std::array<RectShape, 3> screens{};
+    for (size_t i = 0; i < screens.size(); ++i)
+    {
+        screens[i] = RectShape{
+            screenStartX + static_cast<float>(i) * (screenWidth + screenSpacing),
+            screenY,
+            screenWidth,
+            screenHeight,
+            screenOffColor
+        };
+    }
+
+    const float bowlWidth = 260.0f;
+    const float bowlHeight = 140.0f;
+    const float bowlThickness = 10.0f;
+    const float bowlX = (WINDOW_WIDTH - bowlWidth) * 0.5f;
+    const float bowlY = acY + acHeight + 120.0f;
+    RectShape bowlOutline{ bowlX, bowlY, bowlWidth, bowlHeight, bowlColor };
+
+    auto setCustomCursorIfPresent = [&]()
+    {
+        const char* cursorPath = "Resources/cursor.png";
+        std::ifstream in(cursorPath, std::ios::binary);
+        if (in.good())
+        {
+            GLFWcursor* cursor = loadImageToCursor(cursorPath);
+            if (cursor != nullptr)
+            {
+                glfwSetCursor(window, cursor);
+            }
+        }
+    };
+
+    setCustomCursorIfPresent();
+
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Test pravougaonik za potvrdu pipeline-a
-        drawRect(100.0f, 100.0f, 200.0f, 150.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+        drawRect(acBody.x, acBody.y, acBody.w, acBody.h, acBody.color);
+        drawRect(ventBar.x, ventBar.y, ventBar.w, ventBar.h, ventBar.color);
+        drawCircle(lamp.x, lamp.y, lamp.radius, lamp.color);
+
+        for (const auto& screen : screens)
+        {
+            drawRect(screen.x, screen.y, screen.w, screen.h, screen.color);
+        }
+
+        drawFrame(bowlOutline, bowlThickness);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
