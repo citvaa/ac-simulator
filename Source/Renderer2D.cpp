@@ -108,3 +108,31 @@ void Renderer2D::drawFrame(const RectShape& rect, float thickness) const
     drawRect(rect.x, rect.y, thickness, rect.h, rect.color); // left
     drawRect(rect.x + rect.w - thickness, rect.y, thickness, rect.h, rect.color); // right
 }
+
+void Renderer2D::drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3, const Color& color) const
+{
+    float vertices[6];
+    auto toNdc = [&](float x, float y)
+    {
+        float ndcX = 2.0f * x / m_windowWidth - 1.0f;
+        float ndcY = 1.0f - 2.0f * y / m_windowHeight;
+        return std::pair<float, float>(ndcX, ndcY);
+    };
+
+    auto p1 = toNdc(x1, y1);
+    auto p2 = toNdc(x2, y2);
+    auto p3 = toNdc(x3, y3);
+
+    vertices[0] = p1.first; vertices[1] = p1.second;
+    vertices[2] = p2.first; vertices[3] = p2.second;
+    vertices[4] = p3.first; vertices[5] = p3.second;
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+    glUseProgram(m_program);
+    glUniform4f(m_uColorLocation, color.r, color.g, color.b, color.a);
+    glBindVertexArray(m_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
+}

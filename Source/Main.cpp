@@ -21,31 +21,27 @@ namespace
         return px >= rect.x && px <= rect.x + rect.w && py >= rect.y && py <= rect.y + rect.h;
     }
 
-    void drawArrowButton(Renderer2D& renderer, const RectShape& button, bool isUp, const Color& arrowColor)
+    void drawHalfArrow(Renderer2D& renderer, const RectShape& button, bool isUp, const Color& arrowColor)
     {
-        renderer.drawRect(button.x, button.y, button.w, button.h, button.color);
-
         float cx = button.x + button.w * 0.5f;
         float cy = button.y + button.h * 0.5f;
-        float stemW = button.w * 0.20f;
-        float stemH = button.h * 0.38f;
-        float stemX = cx - stemW * 0.5f;
-        float stemY = isUp ? cy - stemH * 0.1f : cy - stemH * 0.9f;
-        renderer.drawRect(stemX, stemY, stemW, stemH, arrowColor);
+        float margin = button.w * 0.22f;
+        float topY = button.y + margin;
+        float bottomY = button.y + button.h - margin;
 
-        float headW = button.w * 0.70f;
-        float headH = button.h * 0.40f;
-        float headX = cx - headW * 0.5f;
-        float headStartY = isUp ? button.y + button.h * 0.12f : button.y + button.h * 0.48f;
-        float rowH = headH / 5.0f;
-        for (int i = 0; i < 5; ++i)
+        renderer.drawRect(button.x, button.y, button.w, button.h, button.color);
+
+        float ax = cx;
+        float bx = button.x + margin;
+        float cxv = button.x + button.w - margin;
+
+        if (isUp)
         {
-            float t = static_cast<float>(i);
-            float scale = 1.0f - t * 0.16f;
-            float w = headW * scale;
-            float x = cx - w * 0.5f;
-            float y = isUp ? headStartY + rowH * t : headStartY + rowH * (4.0f - t);
-            renderer.drawRect(x, y, w, rowH + 0.5f, arrowColor);
+            renderer.drawTriangle(ax, topY, bx, bottomY, cxv, bottomY, arrowColor);
+        }
+        else
+        {
+            renderer.drawTriangle(ax, bottomY, bx, topY, cxv, topY, arrowColor);
         }
     }
 }
@@ -114,9 +110,8 @@ int main()
         };
     }
 
-    const float arrowSize = 40.0f;
-    RectShape tempUpButton{ screenStartX - arrowSize - 12.0f, screenY, arrowSize, arrowSize, arrowBg };
-    RectShape tempDownButton{ tempUpButton.x, screenY + screenHeight - arrowSize, arrowSize, arrowSize, arrowBg };
+    const float arrowWidth = 40.0f;
+    RectShape tempArrowButton{ screenStartX - arrowWidth - 12.0f, screenY, arrowWidth, screenHeight, arrowBg };
 
     const float bowlWidth = 260.0f;
     const float bowlHeight = 140.0f;
@@ -168,13 +163,17 @@ int main()
 
         if (clickStarted && !appState.lockedByFullBowl)
         {
-            if (pointInRect(mouseX, mouseY, tempUpButton))
+            if (pointInRect(mouseX, mouseY, tempArrowButton))
             {
-                appState.desiredTemp += appState.tempChangeStep;
-            }
-            else if (pointInRect(mouseX, mouseY, tempDownButton))
-            {
-                appState.desiredTemp -= appState.tempChangeStep;
+                float midY = tempArrowButton.y + tempArrowButton.h * 0.5f;
+                if (mouseY < midY)
+                {
+                    appState.desiredTemp += appState.tempChangeStep;
+                }
+                else
+                {
+                    appState.desiredTemp -= appState.tempChangeStep;
+                }
             }
 
             if (appState.desiredTemp < -10.0f) appState.desiredTemp = -10.0f;
@@ -211,8 +210,10 @@ int main()
         }
 
         renderer.drawFrame(bowlOutline, bowlThickness);
-        drawArrowButton(renderer, tempUpButton, true, arrowColor);
-        drawArrowButton(renderer, tempDownButton, false, arrowColor);
+        RectShape arrowTop{ tempArrowButton.x, tempArrowButton.y, tempArrowButton.w, tempArrowButton.h * 0.5f, arrowBg };
+        RectShape arrowBottom{ tempArrowButton.x, tempArrowButton.y + tempArrowButton.h * 0.5f, tempArrowButton.w, tempArrowButton.h * 0.5f, arrowBg };
+        drawHalfArrow(renderer, arrowTop, true, arrowColor);
+        drawHalfArrow(renderer, arrowBottom, false, arrowColor);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
