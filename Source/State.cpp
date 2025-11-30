@@ -46,7 +46,8 @@ void handleTemperatureInput(AppState& state, bool upPressed, bool downPressed)
         state.desiredTemp -= state.tempChangeStep;
     }
 
-    state.desiredTemp = std::clamp(state.desiredTemp, -10.0f, 40.0f);
+    if (state.desiredTemp < -10.0f) state.desiredTemp = -10.0f;
+    if (state.desiredTemp > 40.0f) state.desiredTemp = 40.0f;
 
     state.prevUpPressed = upPressed;
     state.prevDownPressed = downPressed;
