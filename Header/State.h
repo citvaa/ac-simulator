@@ -9,8 +9,8 @@ struct AppState
     float ventOpenness = 0.0f; // 0 closed, 1 open
     float ventAnimSpeed = 1.5f; // openness units per second
     bool prevMouseDown = false;
-    float desiredTemp = 22.0f;
-    float currentTemp = 22.0f;
+    float desiredTemp = 24.0f;
+    float currentTemp = 30.0f;
     float tempDriftSpeed = 4.0f; // degrees per second
     float tempChangeStep = 1.0f;
     bool prevUpPressed = false;
