@@ -169,15 +169,13 @@ int main()
     double logAccumulator = 0.0;
     int logFrames = 0;
 
-    double lastTime = glfwGetTime();
-    double frameStart = lastTime;
+    auto lastTime = std::chrono::steady_clock::now();
 
     while (!glfwWindowShouldClose(window))
     {
-        frameStart = glfwGetTime();
         auto frameStartTime = std::chrono::steady_clock::now();
-        float deltaTime = static_cast<float>(frameStart - lastTime);
-        lastTime = frameStart;
+        float deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(frameStartTime - lastTime).count();
+        lastTime = frameStartTime;
         logAccumulator += deltaTime;
         ++logFrames;
         if (logAccumulator >= 1.0)
