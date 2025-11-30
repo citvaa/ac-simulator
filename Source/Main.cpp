@@ -170,6 +170,7 @@ int main()
     while (!glfwWindowShouldClose(window))
     {
         frameStart = glfwGetTime();
+        auto frameStartTime = std::chrono::steady_clock::now();
         float deltaTime = static_cast<float>(frameStart - lastTime);
         lastTime = frameStart;
 
@@ -320,12 +321,11 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        double frameEnd = glfwGetTime();
-        double frameDuration = frameEnd - frameStart;
-        if (frameDuration < TARGET_FRAME_TIME)
+        auto targetTime = frameStartTime + std::chrono::duration<double>(TARGET_FRAME_TIME);
+        auto now = std::chrono::steady_clock::now();
+        if (now < targetTime)
         {
-            double sleepTime = TARGET_FRAME_TIME - frameDuration;
-            std::this_thread::sleep_for(std::chrono::duration<double>(sleepTime));
+            std::this_thread::sleep_until(targetTime);
         }
     }
 
