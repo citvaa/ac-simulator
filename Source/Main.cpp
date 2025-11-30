@@ -10,7 +10,6 @@
 #include <array>
 #include <algorithm>
 #include <cmath>
-#include <fstream>
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 800;
@@ -115,21 +114,9 @@ int main()
     const float bowlY = acY + acHeight + 120.0f;
     RectShape bowlOutline{ bowlX, bowlY, bowlWidth, bowlHeight, bowlColor };
 
-    auto setCustomCursorIfPresent = [&]()
+    auto setProceduralCursor = [&]()
     {
-        const char* cursorPath = "Resources/cursor.png";
-        GLFWcursor* cursor = nullptr;
-
-        std::ifstream in(cursorPath, std::ios::binary);
-        if (in.good())
-        {
-            cursor = loadImageToCursor(cursorPath);
-        }
-
-        if (cursor == nullptr)
-        {
-            cursor = createProceduralRemoteCursor();
-        }
+        GLFWcursor* cursor = createProceduralRemoteCursor();
 
         if (cursor != nullptr)
         {
@@ -137,7 +124,7 @@ int main()
         }
     };
 
-    setCustomCursorIfPresent();
+    setProceduralCursor();
 
     AppState appState{};
 
