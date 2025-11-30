@@ -124,6 +124,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Controls.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Renderer2D.cpp" />
     <ClCompile Include="Source\State.cpp" />
@@ -131,6 +132,7 @@
     <ClCompile Include="Source\Util.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Header\Controls.h" />
     <ClInclude Include="Header\Renderer2D.h" />
     <ClInclude Include="Header\State.h" />
     <ClInclude Include="Header\TemperatureUI.h" />

@@ -5,6 +5,7 @@
 #include "../Header/Renderer2D.h"
 #include "../Header/State.h"
 #include "../Header/TemperatureUI.h"
+#include "../Header/Controls.h"
 
 #include <array>
 #include <algorithm>
@@ -13,38 +14,6 @@
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 800;
-
-namespace
-{
-    bool pointInRect(double px, double py, const RectShape& rect)
-    {
-        return px >= rect.x && px <= rect.x + rect.w && py >= rect.y && py <= rect.y + rect.h;
-    }
-
-    void drawHalfArrow(Renderer2D& renderer, const RectShape& button, bool isUp, const Color& arrowColor)
-    {
-        float cx = button.x + button.w * 0.5f;
-        float cy = button.y + button.h * 0.5f;
-        float margin = button.w * 0.22f;
-        float topY = button.y + margin;
-        float bottomY = button.y + button.h - margin;
-
-        renderer.drawRect(button.x, button.y, button.w, button.h, button.color);
-
-        float ax = cx;
-        float bx = button.x + margin;
-        float cxv = button.x + button.w - margin;
-
-        if (isUp)
-        {
-            renderer.drawTriangle(ax, topY, bx, bottomY, cxv, bottomY, arrowColor);
-        }
-        else
-        {
-            renderer.drawTriangle(ax, bottomY, bx, topY, cxv, topY, arrowColor);
-        }
-    }
-}
 
 int main()
 {
@@ -212,8 +181,8 @@ int main()
         renderer.drawFrame(bowlOutline, bowlThickness);
         RectShape arrowTop{ tempArrowButton.x, tempArrowButton.y, tempArrowButton.w, tempArrowButton.h * 0.5f, arrowBg };
         RectShape arrowBottom{ tempArrowButton.x, tempArrowButton.y + tempArrowButton.h * 0.5f, tempArrowButton.w, tempArrowButton.h * 0.5f, arrowBg };
-        drawHalfArrow(renderer, arrowTop, true, arrowColor);
-        drawHalfArrow(renderer, arrowBottom, false, arrowColor);
+        drawHalfArrow(renderer, arrowTop, true, arrowColor, arrowBg);
+        drawHalfArrow(renderer, arrowBottom, false, arrowColor, arrowBg);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
