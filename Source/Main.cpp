@@ -135,7 +135,7 @@ int main()
     GLuint nameplateTexture = 0;
     int nameplateW = 0;
     int nameplateH = 0;
-    textRenderer.createTextTexture("Vuk Vi\u0107enti\u0107, SV45/2022", nameplateText, nameplateBg, 10, 42, nameplateTexture, nameplateW, nameplateH);
+    textRenderer.createTextTexture("Vuk Vicentic, SV45/2022", nameplateText, nameplateBg, 10, 42, nameplateTexture, nameplateW, nameplateH);
 
     GLuint overlayVao = 0;
     GLuint overlayVbo = 0;

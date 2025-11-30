@@ -1,1 +1,4 @@
 D:\Documents\fax\7. semestar\racunarska grafika\2d\ac-simulator\x64\Debug\glew32.dll
+D:\Documents\fax\7. semestar\racunarska grafika\2d\ac-simulator\x64\Debug\brotlidec.dll
+D:\Documents\fax\7. semestar\racunarska grafika\2d\ac-simulator\x64\Debug\brotlicommon.dll
+D:\Documents\fax\7. semestar\racunarska grafika\2d\ac-simulator\ac-simulator\x64\Debug\ac-simul.755E6AB1.Up2Date

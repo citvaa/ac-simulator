@@ -1,10 +1,2 @@
-﻿  Controls.cpp
-  Main.cpp
-D:\Documents\fax\7. semestar\racunarska grafika\2d\ac-simulator\Source\Main.cpp(138,36): warning C4566: character represented by universal-character-name '\u0107' cannot be represented in the current code page (1252)
-  Renderer2D.cpp
-  State.cpp
-  TemperatureUI.cpp
-  TextRenderer.cpp
-  Util.cpp
-  Generating Code...
+﻿  Main.cpp
   ac-simulator.vcxproj -> D:\Documents\fax\7. semestar\racunarska grafika\2d\ac-simulator\x64\Debug\ac-simulator.exe

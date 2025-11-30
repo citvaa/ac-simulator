@@ -7,6 +7,7 @@ uniform vec4 uTextColor;
 
 void main()
 {
-    float alpha = texture(uTexture, TexCoord).r;
+    // Flip Y because FreeType/CPU buffers are top-left origin.
+    float alpha = texture(uTexture, vec2(TexCoord.x, 1.0 - TexCoord.y)).r;
     FragColor = vec4(uTextColor.rgb, uTextColor.a * alpha);
 }

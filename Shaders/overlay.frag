@@ -7,5 +7,6 @@ uniform vec4 uTint;
 
 void main()
 {
-    FragColor = texture(uTexture, vUV) * uTint;
+    // Flip Y because textures we upload are top-left origin.
+    FragColor = texture(uTexture, vec2(vUV.x, 1.0 - vUV.y)) * uTint;
 }
