@@ -1,11 +1,10 @@
-# Klima Simulator
+# AC Simulator
 
-Jednostavan 2D OpenGL demo klime sa sledećim ponašanjem:
-- Levi klik na lampicu pali/gasi klimu; vent se animira, ekrani zasvetle, i status ikona (vatra/pahulja/kukica) pokazuje odnos željene i trenutne temperature.
-- Strelice na tastaturi ili klik na gornju/donju polovinu streličnog panela menjaju željenu temperaturu u opsegu -10°C do 40°C.
-- Trenutna temperatura se polako približava željenoj dok je klima upaljena.
-- Lavor se puni vodom svake sekunde dok klima radi; razmaknica (`Space`) ga prazni. Kada se napuni, klima se gasi i zaključava dok se ne isprazni.
-- Kursor je uvek proceduralni (nema učitavanja iz fajla).
+A tiny 2D OpenGL demo of an AC remote and unit.
 
-## Pokretanje
-Projekat je Visual Studio C++ (OpenGL/GLFW/GLEW). Otvoriti `ac-simulator.sln`, build, i pokrenuti (Debug/Release, x64). Fullscreen i promena veličine su podržani; scena se automatski centrira.
+- Toggle the lamp to power the AC on or off.
+- Adjust the desired temperature with the arrow panel or keyboard keys.
+- Vent animates; status icon reflects temps; water fills over time and Space drains it.
+- Cursor is always a built-in procedural design.
+
+Build & Run: Open ac-simulator.sln in Visual Studio (x64), build, and run. The window resizes and centers the scene automatically.
