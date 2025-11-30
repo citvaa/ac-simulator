@@ -48,7 +48,7 @@ int main()
     glClearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
 
     // Shader program and basic geometry
-    Renderer2D renderer(static_cast<float>(fbWidth), static_cast<float>(fbHeight), "Shaders/basic.vert", "Shaders/basic.frag");
+    Renderer2D renderer(fbWidth, fbHeight, "Shaders/basic.vert", "Shaders/basic.frag");
 
     ResizeContext resizeCtx;
     resizeCtx.renderer = &renderer;
