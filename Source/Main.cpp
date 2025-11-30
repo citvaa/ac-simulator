@@ -157,7 +157,7 @@ int main()
 
     RectShape acBody{ acX, acY, acWidth, acHeight, bodyColor };
     RectShape ventBar{ acX + 32.0f, acY + acHeight - 36.0f, acWidth - 64.0f, 18.0f, ventColor };
-    CircleShape lamp{ acX + 44.0f, acY + 40.0f, 14.0f, lampOffColor };
+    CircleShape lamp{ acX + acWidth - 44.0f, acY + acHeight - 40.0f, 14.0f, lampOffColor };
 
     const float screenWidth = 82.0f;
     const float screenHeight = 48.0f;
