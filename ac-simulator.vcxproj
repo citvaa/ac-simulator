@@ -143,6 +143,8 @@
     <ClInclude Include="Header\Util.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\\overlay.frag" />
+    <None Include="Shaders\\overlay.vert" />
     <None Include="Shaders\text.frag" />
     <None Include="Shaders\text.vert" />
     <None Include="packages.config" />

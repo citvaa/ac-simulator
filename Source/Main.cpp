@@ -11,9 +11,13 @@
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <chrono>
+#include <thread>
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 800;
+const double TARGET_FPS = 75.0;
+const double TARGET_FRAME_TIME = 1.0 / TARGET_FPS;
 
 struct ResizeContext
 {
@@ -30,12 +34,15 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    int windowWidth = WINDOW_WIDTH;
-    int windowHeight = WINDOW_HEIGHT;
-    GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "AC Simulator", NULL, NULL);
+    GLFWmonitor* primary = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primary);
+
+    int windowWidth = mode ? mode->width : WINDOW_WIDTH;
+    int windowHeight = mode ? mode->height : WINDOW_HEIGHT;
+    GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "AC Simulator", primary, NULL);
     if (window == NULL) return endProgram("Prozor nije uspeo da se kreira.");
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
 
     if (glewInit() != GLEW_OK) return endProgram("GLEW nije uspeo da se inicijalizuje.");
 
@@ -51,6 +58,10 @@ int main()
     // Shader program and basic geometry
     Renderer2D renderer(fbWidth, fbHeight, "Shaders/basic.vert", "Shaders/basic.frag");
     TextRenderer textRenderer(fbWidth, fbHeight);
+    GLuint overlayProgram = createShader("Shaders/overlay.vert", "Shaders/overlay.frag");
+    GLint overlayWindowSizeLoc = glGetUniformLocation(overlayProgram, "uWindowSize");
+    GLint overlayTintLoc = glGetUniformLocation(overlayProgram, "uTint");
+    GLint overlayTextureLoc = glGetUniformLocation(overlayProgram, "uTexture");
 
     ResizeContext resizeCtx;
     resizeCtx.renderer = &renderer;
@@ -80,6 +91,8 @@ int main()
     const Color arrowBg{ 0.15f, 0.18f, 0.22f, 1.0f };
     const Color arrowColor{ 0.90f, 0.96f, 1.0f, 1.0f };
     const Color waterColor{ 0.50f, 0.78f, 0.94f, 0.9f };
+    const Color nameplateBg{ 0.08f, 0.08f, 0.10f, 0.45f };
+    const Color nameplateText{ 0.96f, 0.98f, 1.0f, 0.95f };
 
     const float acWidth = 480.0f;
     const float acHeight = 200.0f;
@@ -119,6 +132,24 @@ int main()
     const float bowlY = acY + acHeight + 120.0f;
     RectShape bowlOutline{ bowlX, bowlY, bowlWidth, bowlHeight, bowlColor };
 
+    GLuint nameplateTexture = 0;
+    int nameplateW = 0;
+    int nameplateH = 0;
+    textRenderer.createTextTexture("Vuk Vi\u0107enti\u0107, SV45/2022", nameplateText, nameplateBg, 10, 42, nameplateTexture, nameplateW, nameplateH);
+
+    GLuint overlayVao = 0;
+    GLuint overlayVbo = 0;
+    glGenVertexArrays(1, &overlayVao);
+    glGenBuffers(1, &overlayVbo);
+    glBindVertexArray(overlayVao);
+    glBindBuffer(GL_ARRAY_BUFFER, overlayVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 24, nullptr, GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glBindVertexArray(0);
+
     auto setProceduralCursor = [&]()
     {
         GLFWcursor* cursor = createProceduralRemoteCursor();
@@ -134,12 +165,13 @@ int main()
     AppState appState{};
 
     double lastTime = glfwGetTime();
+    double frameStart = lastTime;
 
     while (!glfwWindowShouldClose(window))
     {
-        double currentTime = glfwGetTime();
-        float deltaTime = static_cast<float>(currentTime - lastTime);
-        lastTime = currentTime;
+        frameStart = glfwGetTime();
+        float deltaTime = static_cast<float>(frameStart - lastTime);
+        lastTime = frameStart;
 
         double mouseX, mouseY;
         glfwGetCursorPos(window, &mouseX, &mouseY);
@@ -147,6 +179,10 @@ int main()
         bool upPressed = glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;
         bool downPressed = glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS;
         bool spacePressed = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
         bool clickStarted = mouseDown && !appState.prevMouseDown;
 
         float sceneMinX = std::min({ acBody.x, tempArrowButton.x, bowlOutline.x });
@@ -251,8 +287,46 @@ int main()
         drawHalfArrow(renderer, arrowTop, true, arrowColor, arrowBg);
         drawHalfArrow(renderer, arrowBottom, false, arrowColor, arrowBg);
 
+        if (nameplateTexture != 0)
+        {
+            float margin = 20.0f;
+            float overlayX = static_cast<float>(windowWidth) - static_cast<float>(nameplateW) - margin;
+            float overlayY = static_cast<float>(windowHeight) - static_cast<float>(nameplateH) - margin;
+
+            float vertices[6][4] = {
+                { overlayX,                          overlayY + nameplateH, 0.0f, 0.0f },
+                { overlayX,                          overlayY,               0.0f, 1.0f },
+                { overlayX + nameplateW,             overlayY,               1.0f, 1.0f },
+
+                { overlayX,                          overlayY + nameplateH, 0.0f, 0.0f },
+                { overlayX + nameplateW,             overlayY,               1.0f, 1.0f },
+                { overlayX + nameplateW,             overlayY + nameplateH, 1.0f, 0.0f },
+            };
+
+            glUseProgram(overlayProgram);
+            glUniform2f(overlayWindowSizeLoc, static_cast<float>(windowWidth), static_cast<float>(windowHeight));
+            glUniform4f(overlayTintLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+            glUniform1i(overlayTextureLoc, 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, nameplateTexture);
+
+            glBindVertexArray(overlayVao);
+            glBindBuffer(GL_ARRAY_BUFFER, overlayVbo);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glBindVertexArray(0);
+        }
+
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        double frameEnd = glfwGetTime();
+        double frameDuration = frameEnd - frameStart;
+        if (frameDuration < TARGET_FRAME_TIME)
+        {
+            double sleepTime = TARGET_FRAME_TIME - frameDuration;
+            std::this_thread::sleep_for(std::chrono::duration<double>(sleepTime));
+        }
     }
 
     glfwDestroyWindow(window);

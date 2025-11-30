@@ -67,6 +67,12 @@
     <None Include="Shaders\text.vert">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="Shaders\overlay.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Shaders\overlay.vert">
+      <Filter>Resource Files</Filter>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
 </Project>

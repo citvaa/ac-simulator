@@ -19,6 +19,7 @@ TextRenderer::TextRenderer(int windowWidth, int windowHeight)
     : m_windowWidth(static_cast<float>(windowWidth))
     , m_windowHeight(static_cast<float>(windowHeight))
 {
+    m_fontPath = kDefaultFontPath;
     m_program = createShader(kTextVertexShader, kTextFragmentShader);
     m_uTextColor = glGetUniformLocation(m_program, "uTextColor");
     m_uWindowSize = glGetUniformLocation(m_program, "uWindowSize");
@@ -88,6 +89,7 @@ bool TextRenderer::loadFont(const std::string& fontPath, unsigned int pixelHeigh
         return false;
     }
 
+    m_fontPath = fontPath;
     FT_Set_Pixel_Sizes(face, 0, pixelHeight);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
@@ -226,4 +228,177 @@ void TextRenderer::drawText(const std::string& text, float x, float y, float sca
 
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+bool TextRenderer::createTextTexture(const std::string& text, const Color& textColor, const Color& bgColor, unsigned int padding, unsigned int pixelHeight, GLuint& outTexture, int& outWidth, int& outHeight)
+{
+    auto decodeUtf8 = [](const std::string& s)
+    {
+        std::vector<uint32_t> codepoints;
+        size_t i = 0;
+        while (i < s.size())
+        {
+            unsigned char c = static_cast<unsigned char>(s[i]);
+            if (c < 0x80)
+            {
+                codepoints.push_back(c);
+                ++i;
+            }
+            else if ((c >> 5) == 0x6 && i + 1 < s.size())
+            {
+                uint32_t cp = ((c & 0x1F) << 6) | (static_cast<unsigned char>(s[i + 1]) & 0x3F);
+                codepoints.push_back(cp);
+                i += 2;
+            }
+            else if ((c >> 4) == 0xE && i + 2 < s.size())
+            {
+                uint32_t cp = ((c & 0x0F) << 12) | ((static_cast<unsigned char>(s[i + 1]) & 0x3F) << 6) | (static_cast<unsigned char>(s[i + 2]) & 0x3F);
+                codepoints.push_back(cp);
+                i += 3;
+            }
+            else if ((c >> 3) == 0x1E && i + 3 < s.size())
+            {
+                uint32_t cp = ((c & 0x07) << 18) | ((static_cast<unsigned char>(s[i + 1]) & 0x3F) << 12) | ((static_cast<unsigned char>(s[i + 2]) & 0x3F) << 6) | (static_cast<unsigned char>(s[i + 3]) & 0x3F);
+                codepoints.push_back(cp);
+                i += 4;
+            }
+            else
+            {
+                ++i; // skip invalid byte
+            }
+        }
+        return codepoints;
+    };
+
+    std::vector<uint32_t> codepoints = decodeUtf8(text);
+    if (codepoints.empty())
+    {
+        std::cout << "No characters to render for text texture.\n";
+        return false;
+    }
+
+    FT_Library ft;
+    if (FT_Init_FreeType(&ft))
+    {
+        std::cout << "FreeType init failed for text texture.\n";
+        return false;
+    }
+
+    FT_Face face;
+    if (FT_New_Face(ft, m_fontPath.c_str(), 0, &face))
+    {
+        std::cout << "Failed to load font for text texture: " << m_fontPath << "\n";
+        FT_Done_FreeType(ft);
+        return false;
+    }
+
+    FT_Set_Pixel_Sizes(face, 0, pixelHeight);
+
+    // Measure text
+    int width = 0;
+    int maxAscent = 0;
+    int maxDescent = 0;
+    for (uint32_t cp : codepoints)
+    {
+        if (FT_Load_Char(face, cp, FT_LOAD_RENDER))
+        {
+            std::cout << "Failed to load glyph codepoint: " << cp << "\n";
+            continue;
+        }
+        width += face->glyph->advance.x >> 6;
+        maxAscent = std::max(maxAscent, face->glyph->bitmap_top);
+        int descent = static_cast<int>(face->glyph->bitmap.rows) - face->glyph->bitmap_top;
+        maxDescent = std::max(maxDescent, descent);
+    }
+
+    if (width == 0)
+    {
+        FT_Done_Face(face);
+        FT_Done_FreeType(ft);
+        return false;
+    }
+
+    width += static_cast<int>(padding) * 2;
+    int height = maxAscent + maxDescent + static_cast<int>(padding) * 2;
+    outWidth = width;
+    outHeight = height;
+
+    std::vector<unsigned char> pixels(static_cast<size_t>(width * height * 4), 0);
+
+    auto toByte = [](float v)
+    {
+        float clamped = std::max(0.0f, std::min(1.0f, v));
+        return static_cast<unsigned char>(clamped * 255.0f + 0.5f);
+    };
+
+    unsigned char bgR = toByte(bgColor.r);
+    unsigned char bgG = toByte(bgColor.g);
+    unsigned char bgB = toByte(bgColor.b);
+    unsigned char bgA = toByte(bgColor.a);
+
+    unsigned char textR = toByte(textColor.r);
+    unsigned char textG = toByte(textColor.g);
+    unsigned char textB = toByte(textColor.b);
+    float textAlpha = std::max(0.0f, std::min(1.0f, textColor.a));
+
+    for (int i = 0; i < width * height; ++i)
+    {
+        pixels[i * 4 + 0] = bgR;
+        pixels[i * 4 + 1] = bgG;
+        pixels[i * 4 + 2] = bgB;
+        pixels[i * 4 + 3] = bgA;
+    }
+
+    int cursorX = static_cast<int>(padding);
+    int baseline = static_cast<int>(padding) + maxAscent;
+
+    for (uint32_t cp : codepoints)
+    {
+        if (FT_Load_Char(face, cp, FT_LOAD_RENDER))
+        {
+            continue;
+        }
+
+        int glyphW = face->glyph->bitmap.width;
+        int glyphH = face->glyph->bitmap.rows;
+        int bearingX = face->glyph->bitmap_left;
+        int bearingY = face->glyph->bitmap_top;
+
+        int xPos = cursorX + bearingX;
+        int yPos = baseline - bearingY;
+
+        for (int row = 0; row < glyphH; ++row)
+        {
+            for (int col = 0; col < glyphW; ++col)
+            {
+                unsigned char alpha = face->glyph->bitmap.buffer[row * glyphW + col];
+                if (alpha == 0) continue;
+
+                int px = xPos + col;
+                int py = yPos + row;
+                if (px < 0 || py < 0 || px >= width || py >= height) continue;
+
+                size_t idx = (static_cast<size_t>(py) * static_cast<size_t>(width) + static_cast<size_t>(px)) * 4;
+                pixels[idx + 0] = textR;
+                pixels[idx + 1] = textG;
+                pixels[idx + 2] = textB;
+                pixels[idx + 3] = static_cast<unsigned char>(std::min(255.0f, alpha * textAlpha));
+            }
+        }
+
+        cursorX += face->glyph->advance.x >> 6;
+    }
+
+    glGenTextures(1, &outTexture);
+    glBindTexture(GL_TEXTURE_2D, outTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    FT_Done_Face(face);
+    FT_Done_FreeType(ft);
+    return true;
 }

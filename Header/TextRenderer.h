@@ -5,6 +5,7 @@
 #include <GL/glew.h>
 #include <map>
 #include <string>
+#include <vector>
 
 struct Glyph
 {
@@ -35,6 +36,7 @@ public:
     // Draw text with origin at top-left corner of the first glyph box.
     void drawText(const std::string& text, float x, float y, float scale, const Color& color);
     TextMetrics measure(const std::string& text, float scale = 1.0f) const;
+    bool createTextTexture(const std::string& text, const Color& textColor, const Color& bgColor, unsigned int padding, unsigned int pixelHeight, GLuint& outTexture, int& outWidth, int& outHeight);
 
 private:
     void cleanup();
@@ -43,6 +45,7 @@ private:
     float m_windowWidth = 0.0f;
     float m_windowHeight = 0.0f;
     unsigned int m_fontPixelHeight = 0;
+    std::string m_fontPath;
 
     GLuint m_program = 0;
     GLuint m_vao = 0;
