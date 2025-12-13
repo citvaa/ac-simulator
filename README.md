@@ -43,4 +43,3 @@ After building, start from the repo root so shader relative paths resolve, e.g.:
 
 ## Notes
 - Default font: `C:\Windows\Fonts\arial.ttf` (see `TextRenderer.cpp`); change the path if unavailable.
-- If shaders fail to load, run the exe from the repo root so relative paths work.
