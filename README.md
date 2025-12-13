@@ -9,15 +9,18 @@
 - FreeType 2.x (runtime `freetype.dll` already in `x64/Debug`; for rebuild supply FreeType include/lib)
 - `stb_image` included at `Header/stb_image.h`
 
-## Quick Run (existing build)
-1) Open PowerShell in the repo root.
-2) Run `./x64/Debug/ac-simulator.exe` (start from root so shader paths resolve with the `Shaders` folder).
-
 ## Build
 1) Open `ac-simulator.sln` in Visual Studio 2022.
-2) Restore NuGet packages (GLFW, GLEW).
-3) Ensure FreeType include/lib paths are set; keep `freetype.dll` next to the exe.
+2) Restore NuGet packages (GLFW, GLEW) if VS doesn't do it automatically (`nuget restore ac-simulator.sln` also works).
+3) Ensure FreeType include/lib paths are set; place `freetype.dll` next to the produced exe (or in PATH).
 4) Choose x64 Debug/Release and Build/Run.
+
+## Run
+After building, start from the repo root so shader relative paths resolve, e.g.:
+
+```powershell
+.\x64\Debug\ac-simulator.exe
+```
 
 ## Controls
 - Click the lamp (red circle) to power on/off.
@@ -36,7 +39,7 @@
 - `Source/` core logic (`Main.cpp`, `State.cpp`, `TemperatureUI.cpp`, `Renderer2D.cpp`, `TextRenderer.cpp`, `Controls.cpp`, `Util.cpp`)
 - `Header/` declarations and helpers (`stb_image.h`, `ft2build.h` include)
 - `Shaders/` OpenGL shaders for base draw, text, and overlay
-- `x64/Debug/` built binary and needed DLLs
+- `x64/<Config>/` build outputs once you compile (Debug/Release)
 
 ## Notes
 - Default font: `C:\Windows\Fonts\arial.ttf` (see `TextRenderer.cpp`); change the path if unavailable.
