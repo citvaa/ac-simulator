@@ -6,13 +6,13 @@
 - Windows with GPU supporting OpenGL 3.3+
 - Visual Studio 2022 (C++17)
 - NuGet: `glfw` 3.4.0 and `glew-2.2.0` (restored via `packages.config`)
-- FreeType 2.x (runtime `freetype.dll` + the other DLLs from the FreeType module; `freetype.dll` already in `x64/Debug`; for rebuild supply FreeType include/lib)
+- FreeType 2.x (runtime `freetype.dll` + the other DLLs from the FreeType module; binaries are not in the repo—provide your own DLLs next to the exe; for rebuild supply FreeType include/lib)
 - `stb_image` included at `Header/stb_image.h`
 
 ## Build
 1) Open `ac-simulator.sln` in Visual Studio 2022.
 2) Restore NuGet packages (GLFW, GLEW) if VS doesn't do it automatically (`nuget restore ac-simulator.sln` also works).
-3) Ensure FreeType include/lib paths are set; place `freetype.dll` next to the produced exe (or in PATH).
+3) Ensure FreeType include/lib paths are set; place `freetype.dll` and the accompanying FreeType DLL dependencies next to the produced exe (or in PATH).
 4) Choose x64 Debug/Release and Build/Run.
 
 ## Run
