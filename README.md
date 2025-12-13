@@ -6,7 +6,7 @@
 - Windows with GPU supporting OpenGL 3.3+
 - Visual Studio 2022 (C++17)
 - NuGet: `glfw` 3.4.0 and `glew-2.2.0` (restored via `packages.config`)
-- FreeType 2.x (runtime `freetype.dll` already in `x64/Debug`; for rebuild supply FreeType include/lib)
+- FreeType 2.x (runtime `freetype.dll` + the other DLLs from the FreeType module; `freetype.dll` already in `x64/Debug`; for rebuild supply FreeType include/lib)
 - `stb_image` included at `Header/stb_image.h`
 
 ## Build
