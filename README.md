@@ -3,17 +3,27 @@
 2D air-conditioner remote simulator: vent animation, desired/current temperature displays, status icons (heating/cooling/target), condensate bowl you must empty, FPS overlay, and a custom remote-shaped cursor.
 
 ## Requirements
-- Windows with GPU supporting OpenGL 3.3+
-- Visual Studio 2022 (C++17)
-- NuGet: `glfw` 3.4.0 and `glew-2.2.0` (restored via `packages.config`)
-- FreeType 2.x (runtime `freetype.dll` + the other DLLs from the FreeType module; binaries are not in the repo—provide your own DLLs next to the exe; for rebuild supply FreeType include/lib)
+- OpenGL 3.3+ capable GPU
+- C++17 toolchain and development packages: GLFW, GLEW, FreeType, GLM (install via Homebrew on macOS: `brew install pkg-config glfw glew freetype glm`)
 - `stb_image` included at `Header/stb_image.h`
 
-## Build
-1) Open `ac-simulator.sln` in Visual Studio 2022.
-2) Restore NuGet packages (GLFW, GLEW) if VS doesn't do it automatically (`nuget restore ac-simulator.sln` also works).
-3) Ensure FreeType include/lib paths are set; place `freetype.dll` and the accompanying FreeType DLL dependencies next to the produced exe (or in PATH).
-4) Choose x64 Debug/Release and Build/Run.
+## Build (CLion / CMake)
+1) Open the project in CLion (it will use the CMakeLists.txt in the repo root) or run CMake manually from the repo root:
+   mkdir build && cd build && cmake .. && cmake --build .
+2) If CMake can't find libraries on macOS, ensure Homebrew's bin/include/lib are visible to CLion (Toolchains) or install the packages above.
+3) On Windows use vcpkg or NuGet to provide GLFW/GLEW/FreeType and point CMake to the include/lib dirs.
+
+## Run
+Run the binary from the repository root so shader relative paths resolve, for example from repo root:
+
+```bash
+./build/ac-simulator
+```
+
+## CLion tips
+- Set the Run/Debug configuration Working directory to the project root so shader paths resolve.
+- If libraries aren't found, set CMake variables or add Homebrew include/lib paths in CLion settings.
+
 
 ## Run
 After building, start from the repo root so shader relative paths resolve, e.g.:

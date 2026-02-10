@@ -7,19 +7,35 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 namespace
 {
-    constexpr const char* kDefaultFontPath = "C:\\Windows\\Fonts\\arial.ttf";
     constexpr const char* kTextVertexShader = "Shaders/text.vert";
     constexpr const char* kTextFragmentShader = "Shaders/text.frag";
+
+    static std::string detectDefaultFontPath()
+    {
+        const char* candidates[] = {
+            "C:\\Windows\\Fonts\\arial.ttf",
+            "/Library/Fonts/Arial.ttf",
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSans.ttf"
+        };
+        for (const char* p : candidates)
+        {
+            std::ifstream f(p);
+            if (f.good()) return std::string(p);
+        }
+        return std::string();
+    }
 }
 
 TextRenderer::TextRenderer(int windowWidth, int windowHeight)
     : m_windowWidth(static_cast<float>(windowWidth))
     , m_windowHeight(static_cast<float>(windowHeight))
 {
-    m_fontPath = kDefaultFontPath;
     m_program = createShader(kTextVertexShader, kTextFragmentShader);
     m_uTextColor = glGetUniformLocation(m_program, "uTextColor");
     m_uWindowSize = glGetUniformLocation(m_program, "uWindowSize");
@@ -38,8 +54,18 @@ TextRenderer::TextRenderer(int windowWidth, int windowHeight)
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glBindVertexArray(0);
 
-    // Attempt to load a default Windows font so the UI is usable out of the box.
-    loadFont(kDefaultFontPath, 48);
+    // Attempt to load a default font from common system locations so the UI is usable out of the box.
+    std::string detectedFont = detectDefaultFontPath();
+    if (!detectedFont.empty())
+    {
+        m_fontPath = detectedFont;
+        loadFont(m_fontPath, 48);
+    }
+    else
+    {
+        m_fontPath = std::string();
+        std::cout << "No default font found on system; text rendering will be disabled until you set a font path.\n";
+    }
 }
 
 TextRenderer::~TextRenderer()

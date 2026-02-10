@@ -22,21 +22,27 @@ int endProgram(std::string message) {
 unsigned int compileShader(GLenum type, const char* source)
 {
     //Uzima kod u fajlu na putanji "source", kompajlira ga i vraca sejder tipa "type"
-    //Citanje izvornog koda iz fajla
+    //Citanje izvornog koda iz fajla; ako nije moguće otvoriti tačnu putanju, pokušaj sa prefiksima (../, ../../)
     std::string content = "";
-    std::ifstream file(source);
-    std::stringstream ss;
-    if (file.is_open())
+    std::vector<std::string> prefixes = {"", "../", "../../"};
+    for (const auto& p : prefixes)
     {
-        ss << file.rdbuf();
-        file.close();
-        std::cout << "Uspjesno procitao fajl sa putanje \"" << source << "\"!" << std::endl;
+        std::ifstream file(p + std::string(source));
+        if (file.is_open())
+        {
+            std::stringstream ss;
+            ss << file.rdbuf();
+            content = ss.str();
+            file.close();
+            std::cout << "Uspjesno procitao fajl sa putanje \"" << p << source << "\"!" << std::endl;
+            break;
+        }
     }
-    else {
-        ss << "";
-        std::cout << "Greska pri citanju fajla sa putanje \"" << source << "\"!" << std::endl;
+    if (content.empty())
+    {
+        std::cout << "Greska pri citanju fajla sa putanje \"" << source << "\"! Pokušano je sa ../ i ../../ prefiksima." << std::endl;
     }
-    std::string temp = ss.str();
+    std::string temp = content;
     const char* sourceCode = temp.c_str(); //Izvorni kod sejdera koji citamo iz fajla na putanji "source"
 
     int shader = glCreateShader(type); //Napravimo prazan sejder odredjenog tipa (vertex ili fragment)
@@ -55,7 +61,7 @@ unsigned int compileShader(GLenum type, const char* source)
         else if (type == GL_FRAGMENT_SHADER)
             printf("FRAGMENT");
         printf(" sejder ima gresku! Greska: \n");
-        printf(infoLog);
+        printf("%s", infoLog);
     }
     return shader;
 }
