@@ -83,16 +83,20 @@ unsigned int createShader(const char* vsSource, const char* fsSource)
     glAttachShader(program, fragmentShader);
 
     glLinkProgram(program); //Povezi ih u jedan objedinjeni sejder program
-    glValidateProgram(program); //Izvrsi provjeru novopecenog programa
+    // Do not call glValidateProgram here; validation may require a bound VAO and causes "No vertex array object bound." messages
 
-    int success;
-    char infoLog[512];
-    glGetProgramiv(program, GL_VALIDATE_STATUS, &success); //Slicno kao za sejdere
-    if (success == GL_FALSE)
+    int linkStatus = GL_FALSE;
+    char infoLog[1024] = {0};
+    glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
+    glGetProgramInfoLog(program, sizeof(infoLog), NULL, infoLog);
+    if (linkStatus == GL_FALSE)
     {
-        glGetShaderInfoLog(program, 512, NULL, infoLog);
-        std::cout << "Objedinjeni sejder ima gresku! Greska: \n";
+        std::cout << "Objedinjeni sejder link failed! Greska: \n";
         std::cout << infoLog << std::endl;
+    }
+    else if (infoLog[0] != '\0')
+    {
+        std::cout << "Objedinjeni sejder log: \n" << infoLog << std::endl;
     }
 
     //Posto su kodovi sejdera u objedinjenom sejderu, oni pojedinacni programi nam ne trebaju, pa ih brisemo zarad ustede na memoriji

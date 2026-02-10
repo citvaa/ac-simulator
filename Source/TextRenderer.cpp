@@ -54,6 +54,15 @@ TextRenderer::TextRenderer(int windowWidth, int windowHeight)
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glBindVertexArray(0);
 
+    // Create a tiny 1x1 white fallback texture bound to texture unit 0 so shaders always have a valid texture.
+    unsigned char whitePixel[4] = { 255, 255, 255, 255 };
+    glGenTextures(1, &m_blankTexture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_blankTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, whitePixel);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
     // Attempt to load a default font from common system locations so the UI is usable out of the box.
     std::string detectedFont = detectDefaultFontPath();
     if (!detectedFont.empty())
@@ -77,10 +86,12 @@ void TextRenderer::cleanup()
 {
     destroyGlyphTextures();
 
+    if (m_blankTexture != 0) glDeleteTextures(1, &m_blankTexture);
     if (m_vbo != 0) glDeleteBuffers(1, &m_vbo);
     if (m_vao != 0) glDeleteVertexArrays(1, &m_vao);
     if (m_program != 0) glDeleteProgram(m_program);
 
+    m_blankTexture = 0;
     m_vbo = 0;
     m_vao = 0;
     m_program = 0;
@@ -219,6 +230,17 @@ void TextRenderer::drawText(const std::string& text, float x, float y, float sca
     glUniform1i(m_uTexture, 0);
 
     glActiveTexture(GL_TEXTURE0);
+    // Diagnostic: print bound texture id and VAO state
+    GLint boundTex = 0;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
+    GLint boundVao = 0;
+#ifdef GL_VERTEX_ARRAY_BINDING
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &boundVao);
+#else
+    // Fallback for older/compat contexts: VAO may not be queryable
+    boundVao = -1;
+#endif
+    std::cout << "[Diag] drawText: boundTexture=" << boundTex << " boundVAO=" << boundVao << " glyphs=" << m_glyphs.size() << std::endl;
     glBindVertexArray(m_vao);
 
     float cursorX = x;

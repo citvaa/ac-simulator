@@ -50,6 +50,7 @@ private:
     GLuint m_program = 0;
     GLuint m_vao = 0;
     GLuint m_vbo = 0;
+    GLuint m_blankTexture = 0;
     GLint m_uTextColor = -1;
     GLint m_uWindowSize = -1;
     GLint m_uTexture = -1;
