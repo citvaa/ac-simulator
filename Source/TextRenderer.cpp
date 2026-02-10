@@ -230,17 +230,6 @@ void TextRenderer::drawText(const std::string& text, float x, float y, float sca
     glUniform1i(m_uTexture, 0);
 
     glActiveTexture(GL_TEXTURE0);
-    // Diagnostic: print bound texture id and VAO state
-    GLint boundTex = 0;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &boundTex);
-    GLint boundVao = 0;
-#ifdef GL_VERTEX_ARRAY_BINDING
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &boundVao);
-#else
-    // Fallback for older/compat contexts: VAO may not be queryable
-    boundVao = -1;
-#endif
-    std::cout << "[Diag] drawText: boundTexture=" << boundTex << " boundVAO=" << boundVao << " glyphs=" << m_glyphs.size() << std::endl;
     glBindVertexArray(m_vao);
 
     float cursorX = x;
