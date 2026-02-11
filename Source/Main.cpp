@@ -967,8 +967,80 @@ int main()
             model = glm::translate(model, pos);
             model = glm::scale(model, glm::vec3(iconW, iconH, 4.0f));
 
-            // draw status icon using 2D temperature UI (handles heat/snow/check glyphs)
-            drawStatusIcon(renderer, screensDraw[2], appState.desiredTemp, appState.currentTemp);
+            // draw status icon on the rightmost screen using 3D primitives so it sits on the panel
+            auto drawStatusIcon3D = [&](const RectShape& screen, float desired, float current)
+            {
+                float cx = screen.x + screen.w * 0.5f;
+                float cy = screen.y + screen.h * 0.5f;
+                float z = 40.0f + 6.0f; // slightly in front of screen
+                glm::vec3 center = mapToAC(cx, cy, z);
+                float scaleX = 240.0f / acBody.w;
+                float scaleY = 100.0f / acBody.h;
+                float wworld = screen.w * scaleX;
+                float hworld = screen.h * scaleY;
+
+                const float tolerance = 0.25f;
+                float diff = desired - current;
+
+                if (diff > tolerance)
+                {
+                    // Heat icon: approximate flame with stacked boxes (vertical taper)
+                    int bands = 5;
+                    for (int i = 0; i < bands; ++i)
+                    {
+                        float t = 1.0f - static_cast<float>(i) / static_cast<float>(bands);
+                        float bw = wworld * (0.4f * t + 0.1f);
+                        float bh = hworld * 0.12f;
+                        float y = center.y - hworld * 0.25f + i * (bh * 0.9f);
+                        glm::mat4 m = glm::mat4(1.0f);
+                        m = glm::translate(m, glm::vec3(center.x, y, center.z + 1.0f));
+                        m = glm::scale(m, glm::vec3(bw, bh, 2.0f));
+                        renderer3D.drawCube(m, glm::vec3(0.96f, 0.46f, 0.28f));
+                    }
+                }
+                else if (diff < -tolerance)
+                {
+                    // Snow icon: cross arms
+                    float armW = wworld * 0.08f;
+                    float armL = wworld * 0.6f;
+                    glm::mat4 m1 = glm::mat4(1.0f);
+                    m1 = glm::translate(m1, glm::vec3(center.x, center.y, center.z + 1.0f));
+                    m1 = glm::scale(m1, glm::vec3(armL, armW, 2.0f));
+                    renderer3D.drawCube(m1, glm::vec3(0.66f, 0.85f, 0.98f));
+                    glm::mat4 m2 = glm::mat4(1.0f);
+                    m2 = glm::translate(m2, glm::vec3(center.x, center.y, center.z + 1.0f));
+                    m2 = glm::scale(m2, glm::vec3(armW, armL, 2.0f));
+                    renderer3D.drawCube(m2, glm::vec3(0.66f, 0.85f, 0.98f));
+                }
+                else
+                {
+                    // Check icon: two segments
+                    float dot = std::min(wworld, hworld) * 0.08f;
+                    glm::vec3 p1(center.x - wworld*0.15f, center.y + hworld*0.05f, center.z + 1.0f);
+                    glm::vec3 p2(center.x - wworld*0.02f, center.y - hworld*0.15f, center.z + 1.0f);
+                    glm::vec3 p3(center.x + wworld*0.20f, center.y + hworld*0.18f, center.z + 1.0f);
+                    // first segment
+                    glm::mat4 mA = glm::mat4(1.0f);
+                    glm::vec3 midA = (p1 + p2) * 0.5f;
+                    glm::vec3 dirA = p2 - p1;
+                    float lenA = glm::length(dirA);
+                    mA = glm::translate(mA, glm::vec3(midA.x, midA.y, midA.z));
+                    mA = glm::rotate(mA, atan2(dirA.y, dirA.x), glm::vec3(0.0f,0.0f,1.0f));
+                    mA = glm::scale(mA, glm::vec3(lenA, dot, 2.0f));
+                    renderer3D.drawCube(mA, glm::vec3(0.38f, 0.92f, 0.58f));
+                    // second segment
+                    glm::mat4 mB = glm::mat4(1.0f);
+                    glm::vec3 midB = (p2 + p3) * 0.5f;
+                    glm::vec3 dirB = p3 - p2;
+                    float lenB = glm::length(dirB);
+                    mB = glm::translate(mB, glm::vec3(midB.x, midB.y, midB.z));
+                    mB = glm::rotate(mB, atan2(dirB.y, dirB.x), glm::vec3(0.0f,0.0f,1.0f));
+                    mB = glm::scale(mB, glm::vec3(lenB, dot, 2.0f));
+                    renderer3D.drawCube(mB, glm::vec3(0.38f, 0.92f, 0.58f));
+                }
+            };
+
+            drawStatusIcon3D(screensDraw[2], appState.desiredTemp, appState.currentTemp);
         }
 
 
