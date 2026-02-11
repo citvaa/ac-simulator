@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <glm/gtc/type_ptr.hpp>
 
 Renderer::Renderer() {}
 Renderer::~Renderer() {
@@ -28,6 +29,24 @@ bool Renderer::init() {
 
 void Renderer::render() {
   // Placeholder render call; actual draw calls will be implemented later.
+}
+
+void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
+  if (phongProgram_ != 0) {
+    glUseProgram(phongProgram_);
+    GLint loc = glGetUniformLocation(phongProgram_, "view");
+    if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(view));
+    loc = glGetUniformLocation(phongProgram_, "projection");
+    if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(proj));
+  }
+  if (blinnProgram_ != 0) {
+    glUseProgram(blinnProgram_);
+    GLint loc = glGetUniformLocation(blinnProgram_, "view");
+    if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(view));
+    loc = glGetUniformLocation(blinnProgram_, "projection");
+    if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(proj));
+  }
+  glUseProgram(0);
 }
 
 std::string Renderer::loadShaderSource(const char* path) {

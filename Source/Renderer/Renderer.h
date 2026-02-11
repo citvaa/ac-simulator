@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <glm/glm.hpp>
 
 class Renderer {
 public:
@@ -9,6 +10,8 @@ public:
 
   bool init();
   void render();
+
+  void setViewProjection(const glm::mat4& view, const glm::mat4& proj);
 
 private:
   std::string loadShaderSource(const char* path);

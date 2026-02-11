@@ -7,6 +7,7 @@
 #include "../Header/TemperatureUI.h"
 #include "../Header/Controls.h"
 #include "../Header/TextRenderer.h"
+#include "Camera/Camera3D.h"
 #include "Renderer/Renderer.h"
 
 #include <array>
@@ -28,6 +29,7 @@ struct ResizeContext
     TextRenderer* textRenderer = nullptr;
     int* windowWidth = nullptr;
     int* windowHeight = nullptr;
+    Camera3D* camera = nullptr;
 };
 
 int main()
@@ -73,10 +75,12 @@ int main()
     }
 
     ResizeContext resizeCtx;
+    Camera3D camera(window, fbWidth, fbHeight);
     resizeCtx.renderer = &renderer;
     resizeCtx.textRenderer = &textRenderer;
     resizeCtx.windowWidth = &windowWidth;
     resizeCtx.windowHeight = &windowHeight;
+    resizeCtx.camera = &camera;
     glfwSetWindowUserPointer(window, &resizeCtx);
     glfwSetFramebufferSizeCallback(window, [](GLFWwindow* win, int w, int h)
     {
@@ -87,6 +91,28 @@ int main()
         if (ctx->windowHeight) *ctx->windowHeight = h;
         if (ctx->renderer) ctx->renderer->setWindowSize(static_cast<float>(w), static_cast<float>(h));
         if (ctx->textRenderer) ctx->textRenderer->setWindowSize(static_cast<float>(w), static_cast<float>(h));
+        if (ctx->camera) ctx->camera->setWindowSize(w, h);
+    });
+
+    glfwSetCursorPosCallback(window, [](GLFWwindow* win, double x, double y)
+    {
+        auto* ctx = static_cast<ResizeContext*>(glfwGetWindowUserPointer(win));
+        if (!ctx || !ctx->camera) return;
+        ctx->camera->cursorPosCallback(x, y);
+    });
+
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* win, int button, int action, int mods)
+    {
+        auto* ctx = static_cast<ResizeContext*>(glfwGetWindowUserPointer(win));
+        if (!ctx || !ctx->camera) return;
+        ctx->camera->mouseButtonCallback(button, action, mods);
+    });
+
+    glfwSetScrollCallback(window, [](GLFWwindow* win, double xoffset, double yoffset)
+    {
+        auto* ctx = static_cast<ResizeContext*>(glfwGetWindowUserPointer(win));
+        if (!ctx || !ctx->camera) return;
+        ctx->camera->scrollCallback(xoffset, yoffset);
     });
 
     const Color bodyColor{ 0.90f, 0.93f, 0.95f, 1.0f };
@@ -172,6 +198,8 @@ int main()
 
     setProceduralCursor();
 
+    bool prevCPressed = false;
+
     AppState appState{};
     std::string frameStats = "FPS --";
     double logAccumulator = 0.0;
@@ -207,6 +235,14 @@ int main()
         {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
+        // Toggle camera mode with 'C' key
+        bool cPressed = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+        if (cPressed && !prevCPressed)
+        {
+            auto* ctx = static_cast<ResizeContext*>(glfwGetWindowUserPointer(window));
+            if (ctx && ctx->camera) ctx->camera->toggleMode();
+        }
+        prevCPressed = cPressed;
         bool clickStarted = mouseDown && !appState.prevMouseDown;
 
         float sceneMinX = std::min({ acBody.x, tempArrowButton.x, bowlOutline.x });
@@ -274,6 +310,12 @@ int main()
         updateVent(appState, deltaTime);
         updateTemperature(appState, deltaTime);
         updateWater(appState, deltaTime, spacePressed);
+
+        // Update camera each frame
+        {
+            auto* ctx = static_cast<ResizeContext*>(glfwGetWindowUserPointer(window));
+            if (ctx && ctx->camera) ctx->camera->update(deltaTime);
+        }
 
         lampDraw.color = appState.isOn ? lampOnColor : lampOffColor;
         float ventHeight = ventClosedHeight + (ventOpenHeight - ventClosedHeight) * appState.ventOpenness;
