@@ -967,15 +967,8 @@ int main()
             model = glm::translate(model, pos);
             model = glm::scale(model, glm::vec3(iconW, iconH, 4.0f));
 
-            // pick color based on desired vs current
-            const float tolerance = 0.25f;
-            float diff = appState.desiredTemp - appState.currentTemp;
-            glm::vec3 iconColor;
-            if (diff > tolerance) iconColor = glm::vec3(0.96f, 0.46f, 0.28f); // heat
-            else if (diff < -tolerance) iconColor = glm::vec3(0.66f, 0.85f, 0.98f); // cold
-            else iconColor = glm::vec3(0.38f, 0.92f, 0.58f); // ok
-
-            renderer3D.drawCube(model, iconColor);
+            // draw status icon using 2D temperature UI (handles heat/snow/check glyphs)
+            drawStatusIcon(renderer, screensDraw[2], appState.desiredTemp, appState.currentTemp);
         }
 
 
