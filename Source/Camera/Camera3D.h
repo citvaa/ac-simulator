@@ -29,7 +29,7 @@ private:
     bool firstMouse_ = true;
     bool rotating_ = false;
 
-    bool orbitMode_ = true; // start in orbit mode
+    bool orbitMode_ = false; // single camera mode: first-person-like movement with visible cursor
     float orbitRadius_ = 600.0f;
     float orbitYaw_ = 0.0f;
     float orbitPitch_ = 0.0f;

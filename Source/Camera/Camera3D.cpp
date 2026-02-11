@@ -6,6 +6,10 @@
 Camera3D::Camera3D(GLFWwindow* win, float width, float height)
     : window_(win), width_(static_cast<int>(width)), height_(static_cast<int>(height))
 {
+    // Ensure cursor is visible so user can click in the single input mode
+    if (window_) {
+        glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
 }
 
 void Camera3D::setWindowSize(int w, int h)
@@ -155,32 +159,7 @@ void Camera3D::update(float deltaTime)
 
 void Camera3D::toggleMode()
 {
-    // switching modes should preserve camera location: convert current pos to spherical when entering orbit
-    if (orbitMode_) {
-        // currently in orbit, switching to first-person: derive yaw/pitch from current pos
-        float radius = std::sqrt(posX_*posX_ + posY_*posY_ + posZ_*posZ_);
-        if (radius > 0.0001f) {
-            yaw_ = glm::degrees(std::atan2(posZ_, posX_));
-            pitch_ = glm::degrees(std::asin(posY_ / radius));
-        }
-    } else {
-        // currently in first-person, switching to orbit: derive spherical coords from current pos
-        float radius = std::sqrt(posX_*posX_ + posY_*posY_ + posZ_*posZ_);
-        if (radius > 0.0001f) {
-            orbitYaw_ = glm::degrees(std::atan2(posZ_, posX_));
-            orbitPitch_ = glm::degrees(std::asin(posY_ / radius));
-            orbitRadius_ = radius;
-        }
-    }
-
-    orbitMode_ = !orbitMode_;
-    firstMouse_ = true; // reset mouse handling
-    // capture or release cursor when switching to/from first-person
-    if (window_) {
-        if (!orbitMode_) {
-            glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        } else {
-            glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
-    }
+    // single-mode camera: toggle disabled to avoid switching modes in this build
+    // No action; keep first-person-like movement with visible cursor enabled.
+    return;
 }

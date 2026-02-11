@@ -256,14 +256,8 @@ int main()
         {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
-        // Toggle camera mode with 'C' key
-        bool cPressed = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
-        if (cPressed && !prevCPressed)
-        {
-            auto* ctx = static_cast<ResizeContext*>(glfwGetWindowUserPointer(window));
-            if (ctx && ctx->camera) ctx->camera->toggleMode();
-        }
-        prevCPressed = cPressed;
+        // Camera mode toggle disabled: single movement mode with visible cursor
+        prevCPressed = false;
 
         bool clickStarted = mouseDown && !appState.prevMouseDown;
 
