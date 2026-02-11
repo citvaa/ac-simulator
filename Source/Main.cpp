@@ -107,9 +107,11 @@ int main()
     int toiletModelId = -1;
     {
         // try relative paths (when running from build dir the executable cwd is cmake-build-debug)
-        toiletModelId = renderer3D.loadOBJModel("Assets/models/toilet.obj");
+        // prefer the higher-quality model if present
+        toiletModelId = renderer3D.loadOBJModel("Assets/models/10778_Toilet_V2.obj");
+        if (toiletModelId < 0) toiletModelId = renderer3D.loadOBJModel("Assets/models/toilet.obj");
+        if (toiletModelId < 0) toiletModelId = renderer3D.loadOBJModel("../Assets/models/10778_Toilet_V2.obj");
         if (toiletModelId < 0) toiletModelId = renderer3D.loadOBJModel("../Assets/models/toilet.obj");
-        if (toiletModelId < 0) toiletModelId = renderer3D.loadOBJModel("./Assets/models/toilet.obj");
 
         if (toiletModelId < 0) {
             // print to stderr so IDE/build output shows whether the model was found/loaded
