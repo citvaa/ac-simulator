@@ -791,6 +791,9 @@ int main()
             }
         }
 
+        // draw scene-light marker on top of 3D scene
+        renderer3D.render();
+
         // now disable depth and draw text overlays as before
         glDisable(GL_DEPTH_TEST);
 

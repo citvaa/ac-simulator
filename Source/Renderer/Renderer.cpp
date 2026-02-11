@@ -101,7 +101,19 @@ bool Renderer::init() {
 }
 
 void Renderer::render() {
-  // Placeholder render call; actual draw calls will be implemented later.
+  // draw stored scene light marker on top of scene
+  if (phongProgram_ == 0) return;
+  // construct model transform for marker (half AC size)
+  glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), sceneLightPos_);
+  lightModel = glm::scale(lightModel, glm::vec3(120.0f, 50.0f, 40.0f));
+  glm::vec3 markerColor = glm::vec3(1.0f, 1.0f, 0.0f) * sceneLightIntensity_;
+
+  // draw on top of scene
+  glDisable(GL_DEPTH_TEST);
+  glDepthMask(GL_FALSE);
+  drawCube(lightModel, markerColor);
+  glDepthMask(GL_TRUE);
+  glEnable(GL_DEPTH_TEST);
 }
 
 void Renderer::drawCube(const glm::mat4& model, const glm::vec3& color) {
@@ -356,10 +368,10 @@ void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
   glm::mat4 invView = glm::inverse(view);
   glm::vec3 camPos(invView[3][0], invView[3][1], invView[3][2]);
 
-  // default light (moved closer and made stronger for visible shading)
-  glm::vec3 lightPos = glm::vec3(0.0f, 200.0f, 200.0f);
+  // default light: fixed position above-left of AC (world coords) so marker is in air left-top of AC
+  glm::vec3 lightPos = glm::vec3(-250.0f, 200.0f, 40.0f);
   glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-  float lightIntensity = 1.5f;
+  float lightIntensity = 0.75f;
 
   if (phongProgram_ != 0) {
     glUseProgram(phongProgram_);
@@ -387,6 +399,18 @@ void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
 
     GLint viewPosLoc = glGetUniformLocation(phongProgram_, "viewPos");
     if (viewPosLoc >= 0) glUniform3f(viewPosLoc, camPos.x, camPos.y, camPos.z);
+
+    // store scene light info for visualization later (draw after scene so it's on top)
+    sceneLightPos_ = lightPos;
+    sceneLightColor_ = lightColor;
+    sceneLightIntensity_ = lightIntensity;
+    // log once so user can inspect coordinates (helpful for debugging visibility)
+    static bool lightLogged = false;
+    if (!lightLogged) {
+      fprintf(stderr, "SceneLight: pos=(%0.2f,%0.2f,%0.2f) cam=(%0.2f,%0.2f,%0.2f) intensity=%0.2f\n",
+              lightPos.x, lightPos.y, lightPos.z, camPos.x, camPos.y, camPos.z, lightIntensity);
+      lightLogged = true;
+    }
   }
   if (blinnProgram_ != 0) {
     glUseProgram(blinnProgram_);

@@ -31,6 +31,11 @@ public:
   void drawHollowBoxAt(const glm::vec3& center, float width, float height, float depth, float thickness, const glm::vec3& color);
 
 private:
+  // scene light visualization stored here so marker can be drawn after scene
+  glm::vec3 sceneLightPos_ = glm::vec3(0.0f);
+  glm::vec3 sceneLightColor_ = glm::vec3(1.0f);
+  float sceneLightIntensity_ = 1.0f;
+
   std::string loadShaderSource(const char* path);
   unsigned int createShaderProgram(const char* vertPath, const char* fragPath);
   unsigned int phongProgram_ = 0;
