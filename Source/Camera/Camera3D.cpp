@@ -157,4 +157,12 @@ void Camera3D::toggleMode()
 {
     orbitMode_ = !orbitMode_;
     firstMouse_ = true; // reset mouse handling
+    // capture or release cursor when switching to/from first-person
+    if (window_) {
+        if (!orbitMode_) {
+            glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        } else {
+            glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+    }
 }
