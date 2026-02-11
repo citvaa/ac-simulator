@@ -10,6 +10,9 @@
 #include "Camera/Camera3D.h"
 #include "Renderer/Renderer.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <array>
 #include <algorithm>
 #include <cmath>
