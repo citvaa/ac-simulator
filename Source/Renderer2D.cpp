@@ -1,9 +1,11 @@
 #include "../Header/Renderer2D.h"
 
 #include "../Header/Util.h"
+#include "Renderer/Renderer.h"
 
 #include <cmath>
 #include <vector>
+#include <glm/glm.hpp>
 
 namespace
 {
@@ -58,8 +60,30 @@ void Renderer2D::setWindowSize(float width, float height)
     m_windowHeight = height;
 }
 
+// Helper: convert pixel center to world position using simple mapping (pixels -> world * scale)
+static glm::vec3 pixelToWorld(float px, float py, float windowW, float windowH)
+{
+    // center origin
+    float sx = (px - windowW * 0.5f);
+    float sy = (windowH * 0.5f - py);
+    const float scale = 0.5f; // world units per pixel (empirical)
+    return glm::vec3(sx * scale, sy * scale, 80.0f); // place slightly in front of AC base
+}
+
 void Renderer2D::drawRect(float x, float y, float w, float h, const Color& color) const
 {
+    if (renderer3D_) {
+        // draw thin box in 3D at mapped position
+        float cx = x + w * 0.5f;
+        float cy = y + h * 0.5f;
+        glm::vec3 pos = pixelToWorld(cx, cy, m_windowWidth, m_windowHeight);
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, pos);
+        model = glm::scale(model, glm::vec3(w * 0.5f, h * 0.5f, 2.0f));
+        renderer3D_->drawCube(model, glm::vec3(color.r, color.g, color.b));
+        return;
+    }
+
     float vertices[12];
     fillRectVertices(x, y, w, h, m_windowWidth, m_windowHeight, vertices);
 
@@ -75,6 +99,15 @@ void Renderer2D::drawRect(float x, float y, float w, float h, const Color& color
 
 void Renderer2D::drawCircle(float cx, float cy, float radius, const Color& color, int segments) const
 {
+    if (renderer3D_) {
+        glm::vec3 pos = pixelToWorld(cx, cy, m_windowWidth, m_windowHeight);
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, pos);
+        model = glm::scale(model, glm::vec3(radius * 0.5f, radius * 0.5f, 2.0f));
+        renderer3D_->drawCube(model, glm::vec3(color.r, color.g, color.b));
+        return;
+    }
+
     // Fan triangulation for filled circle.
     std::vector<float> vertices;
     vertices.reserve((segments + 2) * 2);
@@ -118,6 +151,17 @@ void Renderer2D::drawFrame(const RectShape& rect, float thickness) const
 
 void Renderer2D::drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3, const Color& color) const
 {
+    if (renderer3D_) {
+        float cx = (x1 + x2 + x3) / 3.0f;
+        float cy = (y1 + y2 + y3) / 3.0f;
+        glm::vec3 pos = pixelToWorld(cx, cy, m_windowWidth, m_windowHeight);
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, pos);
+        model = glm::scale(model, glm::vec3(10.0f, 10.0f, 2.0f));
+        renderer3D_->drawCube(model, glm::vec3(color.r, color.g, color.b));
+        return;
+    }
+
     float vertices[6];
     auto toNdc = [&](float x, float y)
     {
@@ -142,4 +186,8 @@ void Renderer2D::drawTriangle(float x1, float y1, float x2, float y2, float x3, 
     glBindVertexArray(m_vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);
+}
+
+void Renderer2D::set3DRenderer(Renderer* r) {
+    renderer3D_ = r;
 }
