@@ -998,34 +998,6 @@ int main()
             if (prevCull) glEnable(GL_CULL_FACE);
         }
 
-            float margin = 20.0f;
-            float overlayX = static_cast<float>(windowWidth) - static_cast<float>(nameplateW) - margin;
-            float overlayY = static_cast<float>(windowHeight) - static_cast<float>(nameplateH) - margin;
-
-            float vertices[6][4] = {
-                { overlayX,                          overlayY + nameplateH, 0.0f, 0.0f },
-                { overlayX,                          overlayY,               0.0f, 1.0f },
-                { overlayX + nameplateW,             overlayY,               1.0f, 1.0f },
-
-                { overlayX,                          overlayY + nameplateH, 0.0f, 0.0f },
-                { overlayX + nameplateW,             overlayY,               1.0f, 1.0f },
-                { overlayX + nameplateW,             overlayY + nameplateH, 1.0f, 0.0f },
-            };
-
-            glUseProgram(overlayProgram);
-            glUniform2f(overlayWindowSizeLoc, static_cast<float>(windowWidth), static_cast<float>(windowHeight));
-            glUniform4f(overlayTintLoc, 1.0f, 1.0f, 1.0f, 1.0f);
-            glUniform1i(overlayTextureLoc, 0);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, nameplateTexture);
-
-            glBindVertexArray(overlayVao);
-            glBindBuffer(GL_ARRAY_BUFFER, overlayVbo);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            glBindVertexArray(0);
-        }
-
         glfwSwapBuffers(window);
         glfwPollEvents();
 
