@@ -240,6 +240,118 @@ void Renderer::drawHollowCylinderAt(const glm::vec3& center, float radius, float
   }
 }
 
+// Simple OBJ loader and model draw implementation appended
+int Renderer::loadOBJModel(const std::string& path) {
+  std::ifstream in(path);
+  if (!in) return -1;
+  std::vector<glm::vec3> positions;
+  std::vector<glm::vec3> normals;
+  std::vector<glm::vec2> texcoords;
+  std::vector<float> interleaved;
+
+  std::string line;
+  while (std::getline(in, line)) {
+    if (line.size() < 2) continue;
+    if (line[0] == 'v' && line[1] == ' ') {
+      std::istringstream s(line.substr(2));
+      glm::vec3 v; s >> v.x >> v.y >> v.z; positions.push_back(v);
+    } else if (line.rfind("vn ", 0) == 0) {
+      std::istringstream s(line.substr(3)); glm::vec3 n; s >> n.x >> n.y >> n.z; normals.push_back(n);
+    } else if (line.rfind("vt ", 0) == 0) {
+      std::istringstream s(line.substr(3)); glm::vec2 t; s >> t.x >> t.y; texcoords.push_back(t);
+    } else if (line[0] == 'f' && line[1] == ' ') {
+      // parse face entries
+      std::istringstream s(line.substr(2));
+      std::string a,b,c,d;
+      s >> a >> b >> c >> d; // d will be empty for triangles
+      auto process = [&](const std::string& tok){
+        int vi=0,ti=0,ni=0;
+        size_t p1 = tok.find('/');
+        if (p1==std::string::npos) { vi = std::atoi(tok.c_str()); }
+        else {
+          vi = std::atoi(tok.substr(0,p1).c_str());
+          size_t p2 = tok.find('/', p1+1);
+          if (p2==std::string::npos) {
+            ti = std::atoi(tok.substr(p1+1).c_str());
+          } else {
+            if (p2 > p1+1) ti = std::atoi(tok.substr(p1+1, p2-p1-1).c_str());
+            ni = std::atoi(tok.substr(p2+1).c_str());
+          }
+        }
+        glm::vec3 pos(0.0f); glm::vec3 nor(0.0f); glm::vec2 tex(0.0f);
+        if (vi!=0) {
+          int idx = vi > 0 ? vi - 1 : (int)positions.size() + vi;
+          if (idx >=0 && idx < (int)positions.size()) pos = positions[idx];
+        }
+        if (ti!=0) {
+          int idx = ti > 0 ? ti - 1 : (int)texcoords.size() + ti;
+          if (idx >=0 && idx < (int)texcoords.size()) tex = texcoords[idx];
+        }
+        if (ni!=0) {
+          int idx = ni > 0 ? ni - 1 : (int)normals.size() + ni;
+          if (idx >=0 && idx < (int)normals.size()) nor = normals[idx];
+        }
+        // push interleaved pos(3) normal(3) tex(2)
+        interleaved.push_back(pos.x); interleaved.push_back(pos.y); interleaved.push_back(pos.z);
+        interleaved.push_back(nor.x); interleaved.push_back(nor.y); interleaved.push_back(nor.z);
+        interleaved.push_back(tex.x); interleaved.push_back(tex.y);
+      };
+      process(a); process(b); process(c);
+      if (!d.empty()) { // quad -> emit second tri
+        process(a); process(c); process(d);
+      }
+    }
+  }
+
+  if (interleaved.empty()) return -1;
+
+  ModelMesh m{};
+  glGenVertexArrays(1, &m.vao);
+  glGenBuffers(1, &m.vbo);
+  glBindVertexArray(m.vao);
+  glBindBuffer(GL_ARRAY_BUFFER, m.vbo);
+  glBufferData(GL_ARRAY_BUFFER, interleaved.size() * sizeof(float), interleaved.data(), GL_STATIC_DRAW);
+  // pos
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+  // normal
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+  // tex
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+  glBindVertexArray(0);
+  m.vertCount = static_cast<int>(interleaved.size() / 8);
+  models_.push_back(m);
+  return static_cast<int>(models_.size() - 1);
+}
+
+void Renderer::drawModel(int modelId, const glm::mat4& model, const glm::vec3& color) {
+  if (phongProgram_ == 0) return;
+  if (modelId < 0 || modelId >= (int)models_.size()) return;
+  const ModelMesh &m = models_[modelId];
+  glUseProgram(phongProgram_);
+  GLint locModel = glGetUniformLocation(phongProgram_, "model");
+  if (locModel >= 0) glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(model));
+  GLint locMat = glGetUniformLocation(phongProgram_, "materialDiffuse");
+  if (locMat >= 0) glUniform3f(locMat, color.r, color.g, color.b);
+  GLint locSpec = glGetUniformLocation(phongProgram_, "materialSpecular");
+  if (locSpec >= 0) glUniform3f(locSpec, 0.3f, 0.3f, 0.3f);
+  GLint locSh = glGetUniformLocation(phongProgram_, "shininess");
+  if (locSh >= 0) glUniform1f(locSh, 32.0f);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, defaultTex_);
+  GLint texLoc = glGetUniformLocation(phongProgram_, "tex");
+  if (texLoc >= 0) glUniform1i(texLoc, 0);
+  GLint flipLoc = glGetUniformLocation(phongProgram_, "flipV");
+  if (flipLoc >= 0) glUniform1i(flipLoc, 0);
+  glBindVertexArray(m.vao);
+  glDrawArrays(GL_TRIANGLES, 0, m.vertCount);
+  glBindVertexArray(0);
+  glUseProgram(0);
+}
+}
+
 void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
   // compute camera position from inverse view
   glm::mat4 invView = glm::inverse(view);
