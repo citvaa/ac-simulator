@@ -323,7 +323,34 @@ int main()
 
         Color screenColor = appState.isOn ? screenOnColor : screenOffColor;
 
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // 3D pass: draw AC unit cube and lid
+        glEnable(GL_DEPTH_TEST);
+        // compute base and lid model matrices
+        static float lidAngle = 0.0f;
+        const float targetAngle = appState.isOn ? 60.0f : 0.0f;
+        const float angSpeed = 90.0f; // degrees per second
+        if (lidAngle < targetAngle) lidAngle += angSpeed * deltaTime; if (lidAngle > targetAngle) lidAngle = targetAngle;
+        if (lidAngle > targetAngle) lidAngle -= angSpeed * deltaTime; if (lidAngle < targetAngle) lidAngle = targetAngle;
+
+        // place cube at world origin, scale to acWidth x acHeight x depth
+        glm::mat4 modelBase = glm::mat4(1.0f);
+        modelBase = glm::translate(modelBase, glm::vec3(0.0f, 0.0f, 0.0f));
+        modelBase = glm::scale(modelBase, glm::vec3(240.0f, 100.0f, 80.0f));
+        renderer3D.drawCube(modelBase, glm::vec3(0.9f, 0.93f, 0.95f));
+
+        // lid: pivot at top-back edge of cube; build transform: translate to hinge, rotate, translate back
+        glm::mat4 modelLid = glm::mat4(1.0f);
+        // hinge location in model-space: top (y +0.5) and back (z -0.5) -> with scaling accounted later
+        // We'll construct in unscaled cube space then scale
+        modelLid = glm::translate(modelLid, glm::vec3(0.0f, 0.5f, -0.5f));
+        modelLid = glm::rotate(modelLid, glm::radians(-lidAngle), glm::vec3(1.0f, 0.0f, 0.0f));
+        modelLid = glm::translate(modelLid, glm::vec3(0.0f, -0.5f, 0.5f));
+        modelLid = glm::scale(modelLid, glm::vec3(240.0f, 20.0f, 80.0f));
+        renderer3D.drawCube(modelLid, glm::vec3(0.78f, 0.82f, 0.88f));
+
+        glDisable(GL_DEPTH_TEST);
 
         renderer.drawRect(acBodyDraw.x, acBodyDraw.y, acBodyDraw.w, acBodyDraw.h, acBodyDraw.color);
         renderer.drawRect(ventBarDraw.x, ventBarDraw.y, ventBarDraw.w, ventBarDraw.h, ventBarDraw.color);

@@ -24,11 +24,109 @@ bool Renderer::init() {
   if (blinnProgram_ == 0) {
     std::cerr << "Warning: Blinn-Phong shader failed to compile (blinn optional)" << std::endl;
   }
+
+  // Create a simple white 1x1 texture
+  glGenTextures(1, &defaultTex_);
+  glBindTexture(GL_TEXTURE_2D, defaultTex_);
+  unsigned char white[4] = {255,255,255,255};
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  // Create cube geometry (positions, normals, texcoords) - 36 vertices
+  float verts[] = {
+    // positions         normals           tex
+    // front
+    -0.5f, -0.5f,  0.5f,  0,0,1,  0,0,
+     0.5f, -0.5f,  0.5f,  0,0,1,  1,0,
+     0.5f,  0.5f,  0.5f,  0,0,1,  1,1,
+     0.5f,  0.5f,  0.5f,  0,0,1,  1,1,
+    -0.5f,  0.5f,  0.5f,  0,0,1,  0,1,
+    -0.5f, -0.5f,  0.5f,  0,0,1,  0,0,
+    // back
+    -0.5f, -0.5f, -0.5f,  0,0,-1, 0,0,
+    -0.5f,  0.5f, -0.5f,  0,0,-1, 0,1,
+     0.5f,  0.5f, -0.5f,  0,0,-1, 1,1,
+     0.5f,  0.5f, -0.5f,  0,0,-1, 1,1,
+     0.5f, -0.5f, -0.5f,  0,0,-1, 1,0,
+    -0.5f, -0.5f, -0.5f,  0,0,-1, 0,0,
+    // left
+    -0.5f,  0.5f,  0.5f, -1,0,0,  1,0,
+    -0.5f,  0.5f, -0.5f, -1,0,0,  1,1,
+    -0.5f, -0.5f, -0.5f, -1,0,0,  0,1,
+    -0.5f, -0.5f, -0.5f, -1,0,0,  0,1,
+    -0.5f, -0.5f,  0.5f, -1,0,0,  0,0,
+    -0.5f,  0.5f,  0.5f, -1,0,0,  1,0,
+    // right
+     0.5f,  0.5f,  0.5f, 1,0,0,  1,0,
+     0.5f, -0.5f, -0.5f, 1,0,0,  0,1,
+     0.5f,  0.5f, -0.5f, 1,0,0,  1,1,
+     0.5f, -0.5f, -0.5f, 1,0,0,  0,1,
+     0.5f,  0.5f,  0.5f, 1,0,0,  1,0,
+     0.5f, -0.5f,  0.5f, 1,0,0,  0,0,
+    // top
+    -0.5f,  0.5f, -0.5f, 0,1,0,  0,1,
+    -0.5f,  0.5f,  0.5f, 0,1,0,  0,0,
+     0.5f,  0.5f,  0.5f, 0,1,0,  1,0,
+     0.5f,  0.5f,  0.5f, 0,1,0,  1,0,
+     0.5f,  0.5f, -0.5f, 0,1,0,  1,1,
+    -0.5f,  0.5f, -0.5f, 0,1,0,  0,1,
+    // bottom
+    -0.5f, -0.5f, -0.5f, 0,-1,0, 0,1,
+     0.5f, -0.5f, -0.5f, 0,-1,0, 1,1,
+     0.5f, -0.5f,  0.5f, 0,-1,0, 1,0,
+     0.5f, -0.5f,  0.5f, 0,-1,0, 1,0,
+    -0.5f, -0.5f,  0.5f, 0,-1,0, 0,0,
+    -0.5f, -0.5f, -0.5f, 0,-1,0, 0,1
+  };
+  glGenVertexArrays(1, &cubeVao_);
+  glGenBuffers(1, &cubeVbo_);
+  glBindVertexArray(cubeVao_);
+  glBindBuffer(GL_ARRAY_BUFFER, cubeVbo_);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+  // pos
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(0));
+  // normal
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+  // tex
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+  glBindVertexArray(0);
+  cubeVboCount_ = 36;
+
   return true;
 }
 
 void Renderer::render() {
   // Placeholder render call; actual draw calls will be implemented later.
+}
+
+void Renderer::drawCube(const glm::mat4& model, const glm::vec3& color) {
+  if (phongProgram_ == 0) return;
+  glUseProgram(phongProgram_);
+
+  GLint locModel = glGetUniformLocation(phongProgram_, "model");
+  if (locModel >= 0) glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(model));
+  GLint locMat = glGetUniformLocation(phongProgram_, "materialDiffuse");
+  if (locMat >= 0) glUniform3f(locMat, color.r, color.g, color.b);
+  GLint locSpec = glGetUniformLocation(phongProgram_, "materialSpecular");
+  if (locSpec >= 0) glUniform3f(locSpec, 0.3f, 0.3f, 0.3f);
+  GLint locSh = glGetUniformLocation(phongProgram_, "shininess");
+  if (locSh >= 0) glUniform1f(locSh, 32.0f);
+
+  // bind default texture
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, defaultTex_);
+  GLint texLoc = glGetUniformLocation(phongProgram_, "tex");
+  if (texLoc >= 0) glUniform1i(texLoc, 0);
+
+  glBindVertexArray(cubeVao_);
+  glDrawArrays(GL_TRIANGLES, 0, cubeVboCount_);
+  glBindVertexArray(0);
+  glUseProgram(0);
 }
 
 void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
