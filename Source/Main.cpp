@@ -20,6 +20,7 @@
 #include <string>
 #include <cstdio>
 #include <thread>
+#include <random>
 
 // Entry point: fullscreen AC simulator with timed logic and on-screen UI.
 const double TARGET_FPS = 75.0;
@@ -207,8 +208,20 @@ int main()
     setProceduralCursor();
 
     bool prevCPressed = false;
+    bool prevLPressed = false;
 
     AppState appState{};
+    // Start with AC on so lamp and lamp-light can be observed
+    appState.isOn = true;
+
+    // particle drops
+    struct Particle { glm::vec3 pos; glm::vec3 vel; float radius; bool alive; };
+    std::vector<Particle> droplets;
+    float spawnAccumulator = 0.0f;
+    std::mt19937 rng(12345);
+    std::uniform_real_distribution<float> randX(-20.0f, 20.0f);
+    std::uniform_real_distribution<float> randZ(-10.0f, 10.0f);
+
     std::string frameStats = "FPS --";
     double logAccumulator = 0.0;
     int logFrames = 0;
@@ -251,6 +264,7 @@ int main()
             if (ctx && ctx->camera) ctx->camera->toggleMode();
         }
         prevCPressed = cPressed;
+
         bool clickStarted = mouseDown && !appState.prevMouseDown;
 
         float sceneMinX = std::min({ acBody.x, tempArrowButton.x, bowlOutline.x });
@@ -320,18 +334,113 @@ int main()
         updateWater(appState, deltaTime, spacePressed);
 
         // Update camera each frame
+        glm::mat4 currentView = glm::mat4(1.0f);
+        glm::mat4 currentProj = glm::mat4(1.0f);
+        glm::vec3 lampWorldPos(0.0f);
+        glm::vec3 bowlWorldPos(0.0f);
+        float bowlWWorld = 0.0f, bowlHWorld = 0.0f, bowlDepth = 80.0f;
         {
             auto* ctx = static_cast<ResizeContext*>(glfwGetWindowUserPointer(window));
             if (ctx && ctx->camera) {
                 ctx->camera->update(deltaTime);
+                // compute lamp world position (mapToAC equivalent) so renderer can set lamp light uniform
+                float acCenterX = acBodyDraw.x + acBodyDraw.w * 0.5f;
+                float acCenterY = acBodyDraw.y + acBodyDraw.h * 0.5f;
+                float lampLocalX = (lampDraw.x - acCenterX) * (240.0f / acBody.w);
+                float lampLocalY = (acCenterY - lampDraw.y) * (100.0f / acBody.h);
+                float lampLocalZ = 40.0f + 6.0f;
+                lampWorldPos = glm::vec3(lampLocalX, lampLocalY, lampLocalZ);
+                currentView = ctx->camera->getViewMatrix();
+                currentProj = ctx->camera->getProjectionMatrix();
+
+                // tell renderer about lamp light (red when on)
+                glm::vec3 lampColorVec = appState.isOn ? glm::vec3(0.93f, 0.22f, 0.20f) : glm::vec3(0.12f, 0.12f, 0.12f);
+                float lampIntensity = appState.isOn ? 3.0f : 0.0f;
+                renderer3D.setLampLight(lampWorldPos, lampColorVec, lampIntensity, appState.isOn);
+
                 // upload camera matrices to 3D renderer
-                glm::mat4 view = ctx->camera->getViewMatrix();
-                glm::mat4 proj = ctx->camera->getProjectionMatrix();
-                renderer3D.setViewProjection(view, proj);
+                renderer3D.setViewProjection(currentView, currentProj);
             }
         }
 
         lampDraw.color = appState.isOn ? lampOnColor : lampOffColor;
+
+        // allow keyboard toggle for lamp (L key)
+        bool lPressed = glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS;
+        if (lPressed && !prevLPressed) {
+            appState.isOn = !appState.isOn;
+            glm::vec3 lampColorVec = appState.isOn ? glm::vec3(0.93f, 0.22f, 0.20f) : glm::vec3(0.12f, 0.12f, 0.12f);
+            float lampIntensity = appState.isOn ? 3.0f : 0.0f;
+            renderer3D.setLampLight(lampWorldPos, lampColorVec, lampIntensity, appState.isOn);
+        }
+        prevLPressed = lPressed;
+
+        // prepare bowl world position and extents (used for picking and drawing)
+        {
+            float wworld = bowlDraw.w * (240.0f / acBody.w);
+            float hworld = bowlDraw.h * (100.0f / acBody.h);
+            float bowlFullHeight = hworld * 0.5f;
+            float acHalfHeight = 100.0f * 0.5f;
+            float gap = 300.0f;
+            bowlWorldPos = glm::vec3(0.0f, -acHalfHeight - (bowlFullHeight * 0.5f) - gap, 0.0f);
+            bowlWWorld = wworld;
+            bowlHWorld = bowlFullHeight;
+        }
+
+        // perform raycast picking on click start
+        if (clickStarted)
+        {
+            // build inverse PV matrix
+            glm::mat4 invPV = glm::inverse(currentProj * currentView);
+            // normalized device coords
+            float ndcX = (static_cast<float>(mouseX) / static_cast<float>(windowWidth)) * 2.0f - 1.0f;
+            float ndcY = 1.0f - (static_cast<float>(mouseY) / static_cast<float>(windowHeight)) * 2.0f;
+            glm::vec4 nearPointNDC(ndcX, ndcY, -1.0f, 1.0f);
+            glm::vec4 farPointNDC(ndcX, ndcY, 1.0f, 1.0f);
+            glm::vec4 worldNear4 = invPV * nearPointNDC; worldNear4 /= worldNear4.w;
+            glm::vec4 worldFar4 = invPV * farPointNDC; worldFar4 /= worldFar4.w;
+            glm::vec3 rayOrigin = glm::vec3(worldNear4);
+            glm::vec3 rayDir = glm::normalize(glm::vec3(worldFar4) - rayOrigin);
+
+            // test lamp (sphere) intersection
+            float lampRadius = (lampDraw.radius * 2.0f * (240.0f / acBody.w)) * 0.5f;
+            glm::vec3 L = rayOrigin - lampWorldPos;
+            float a = glm::dot(rayDir, rayDir);
+            float b = 2.0f * glm::dot(rayDir, L);
+            float c = glm::dot(L, L) - lampRadius * lampRadius;
+            float disc = b*b - 4*a*c;
+            if (disc >= 0.0f) {
+                float t = (-b - sqrt(disc)) / (2.0f * a);
+                if (t > 0.0f) {
+                    // hit lamp: toggle power
+                    appState.isOn = !appState.isOn;
+                    // update lamp uniforms immediately
+                    glm::vec3 lampColorVec = appState.isOn ? glm::vec3(0.93f, 0.22f, 0.20f) : glm::vec3(0.12f);
+                    float lampIntensity = appState.isOn ? 3.0f : 0.0f;
+                    renderer3D.setLampLight(lampWorldPos, lampColorVec, lampIntensity, appState.isOn);
+                }
+            }
+
+            // test bowl (AABB) intersection
+            glm::vec3 boxMin = bowlWorldPos - glm::vec3(bowlWWorld*0.5f, bowlHWorld*0.5f, bowlDepth*0.5f);
+            glm::vec3 boxMax = bowlWorldPos + glm::vec3(bowlWWorld*0.5f, bowlHWorld*0.5f, bowlDepth*0.5f);
+            float tmin = 0.0f; float tmax = 1e9f;
+            for (int i = 0; i < 3; ++i) {
+                float invD = 1.0f / ((&rayDir.x)[i]);
+                float t0 = ((&boxMin.x)[i] - (&rayOrigin.x)[i]) * invD;
+                float t1 = ((&boxMax.x)[i] - (&rayOrigin.x)[i]) * invD;
+                if (invD < 0.0f) std::swap(t0, t1);
+                tmin = std::max(tmin, t0);
+                tmax = std::min(tmax, t1);
+                if (tmax <= tmin) break;
+            }
+            if (tmax > tmin && tmax > 0.0f) {
+                // hit the bowl: if full, pick it up
+                if (appState.waterLevel >= 0.99f) {
+                    appState.holdingBowl = !appState.holdingBowl;
+                }
+            }
+        }
         float ventHeight = ventClosedHeight + (ventOpenHeight - ventClosedHeight) * appState.ventOpenness;
         ventBarDraw.h = ventHeight;
 
@@ -341,6 +450,85 @@ int main()
 
         // 3D pass: draw AC unit cube and lid
         glEnable(GL_DEPTH_TEST);
+
+        // update particles (physics + spawning)
+        {
+            // spawn rate per second (drops) proportional to vent openness (reduced)
+            float spawnRate = 6.0f * appState.ventOpenness; // drops/sec (was 12)
+            if (appState.isOn && spawnRate > 0.0f) {
+                spawnAccumulator += spawnRate * deltaTime;
+                while (spawnAccumulator >= 1.0f) {
+                    spawnAccumulator -= 1.0f;
+                    Particle p;
+                    // spawn under AC bottom center (local coords)
+                    float spawnY = -50.0f - 5.0f;
+                    p.pos = glm::vec3(randX(rng), spawnY, randZ(rng));
+                    // slower initial downward velocity to avoid tunneling
+                    p.vel = glm::vec3(0.0f, -60.0f - std::abs(randZ(rng))*1.0f, 0.0f);
+                    p.radius = 4.0f;
+                    p.alive = true;
+                    droplets.push_back(p);
+                }
+            }
+
+            // physics integration (reduced gravity)
+            glm::vec3 gravity(0.0f, -400.0f, 0.0f); // was -980
+            for (auto &d : droplets) {
+                if (!d.alive) continue;
+                d.vel += gravity * deltaTime;
+                d.pos += d.vel * deltaTime;
+
+                // collision check with bowl inner top
+                // bowlWorldPos and bowl extents computed earlier
+                float innerWWorld = (bowlInnerW * (240.0f / acBody.w));
+                float innerRadius = innerWWorld * 0.5f;
+                float bowlTopY = bowlWorldPos.y + (bowlHWorld * 0.5f) - (bowlThickness * (100.0f / acBody.h));
+
+                // allow small tolerance to avoid tunneling and accept near-misses
+                float verticalTolerance = 4.0f;
+                float rimTolerance = 2.0f;
+
+                if (d.pos.y - d.radius <= bowlTopY + verticalTolerance) {
+                    // compute horizontal distance to bowl center
+                    float dx = d.pos.x - bowlWorldPos.x;
+                    float dz = d.pos.z - bowlWorldPos.z;
+                    float distXZ = std::sqrt(dx*dx + dz*dz);
+
+                    if (distXZ <= innerRadius - 1.0f) {
+                        // clearly inside
+                        d.alive = false;
+                        appState.waterLevel += 0.0015f; // each drop adds less
+                        if (appState.waterLevel >= 1.0f) {
+                            appState.waterLevel = 1.0f;
+                            appState.isOn = false;
+                            appState.lockedByFullBowl = true;
+                        }
+                    } else if (d.pos.y <= bowlTopY - verticalTolerance && distXZ <= innerRadius + rimTolerance) {
+                        // tunneled through but horizontally near center -> collect
+                        d.alive = false;
+                        appState.waterLevel += 0.0015f;
+                        if (appState.waterLevel >= 1.0f) {
+                            appState.waterLevel = 1.0f;
+                            appState.isOn = false;
+                            appState.lockedByFullBowl = true;
+                        }
+                    } else if (distXZ <= innerRadius + rimTolerance) {
+                        // considered hitting rim: bounce outward slightly
+                        if (distXZ < 0.001f) distXZ = 0.001f;
+                        d.vel.x += (dx / distXZ) * 50.0f;
+                        d.vel.z += (dz / distXZ) * 50.0f;
+                        // and move above rim
+                        d.pos.y = bowlTopY + d.radius + 1.0f;
+                    }
+                }
+
+                // kill if too low
+                if (d.pos.y < bowlWorldPos.y - 1000.0f) d.alive = false;
+            }
+
+            // remove dead
+            droplets.erase(std::remove_if(droplets.begin(), droplets.end(), [](const Particle&p){return !p.alive;}), droplets.end());
+        }
         // compute base and lid model matrices
         static float lidAngle = 0.0f;
         const float targetAngle = appState.isOn ? 60.0f : 0.0f;
@@ -354,6 +542,15 @@ int main()
         modelBase = glm::scale(modelBase, glm::vec3(240.0f, 100.0f, 80.0f));
         renderer3D.drawCube(modelBase, glm::vec3(0.9f, 0.93f, 0.95f));
 
+        // draw droplets
+        for (const auto &d : droplets) {
+            glm::mat4 m = glm::mat4(1.0f);
+            m = glm::translate(m, d.pos);
+            float s = d.radius;
+            m = glm::scale(m, glm::vec3(s, s, s));
+            renderer3D.drawParticle(m, glm::vec3(0.5f, 0.8f, 1.0f), 0.6f);
+        }
+
         // lid: pivot at top-back edge of cube; build transform: translate to hinge, rotate, translate back
         glm::mat4 modelLid = glm::mat4(1.0f);
         // hinge location in model-space: top (y +0.5) and back (z -0.5) -> with scaling accounted later
@@ -364,36 +561,196 @@ int main()
         modelLid = glm::scale(modelLid, glm::vec3(240.0f, 20.0f, 80.0f));
         renderer3D.drawCube(modelLid, glm::vec3(0.78f, 0.82f, 0.88f));
 
+        // Draw UI elements as 3D primitives aligned to the AC model coordinate frame
+        // keep depth test enabled while drawing 3D UI
+
+        // helper: map pixel center to AC-local world coords (AC centered at origin, scaled to 240x100x80)
+        auto mapToAC = [&](float px, float py, float zOffsetFront)->glm::vec3 {
+            float acCenterX = acBodyDraw.x + acBodyDraw.w * 0.5f;
+            float acCenterY = acBodyDraw.y + acBodyDraw.h * 0.5f;
+            float localX = (px - acCenterX) * (240.0f / acBody.w);
+            float localY = (acCenterY - py) * (100.0f / acBody.h);
+            float z = zOffsetFront; // caller decides front/back
+            return glm::vec3(localX, localY, z);
+        };
+
+        // vent (front face)
+        {
+            float cx = ventBarDraw.x + ventBarDraw.w * 0.5f;
+            float cy = ventBarDraw.y + ventBarDraw.h * 0.5f;
+            glm::vec3 pos = mapToAC(cx, cy, 40.0f + 4.0f);
+            float wworld = ventBarDraw.w * (240.0f / acBody.w);
+            float hworld = ventBarDraw.h * (100.0f / acBody.h);
+            float depth = 6.0f;
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, pos);
+            model = glm::scale(model, glm::vec3(wworld, hworld, depth));
+            renderer3D.drawCube(model, glm::vec3(ventBarDraw.color.r, ventBarDraw.color.g, ventBarDraw.color.b));
+        }
+
+        // lamp (small sphere-like cube on front)
+        {
+            float cx = lampDraw.x;
+            float cy = lampDraw.y;
+            glm::vec3 pos = mapToAC(cx, cy, 40.0f + 6.0f);
+            float diam = lampDraw.radius * 2.0f * (240.0f / acBody.w);
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, pos);
+            model = glm::scale(model, glm::vec3(diam, diam, diam));
+            glm::vec3 lampCol(lampDraw.color.r, lampDraw.color.g, lampDraw.color.b);
+            renderer3D.drawCube(model, lampCol);
+        }
+
+        // screens: render desired/current temperatures onto the first two screens using text textures
+        GLuint tempTex0 = 0; int tempW0 = 0; int tempH0 = 0;
+        GLuint tempTex1 = 0; int tempW1 = 0; int tempH1 = 0;
+        if (appState.isOn) {
+            std::string s0 = std::to_string(static_cast<int>(appState.desiredTemp));
+            std::string s1 = std::to_string(static_cast<int>(appState.currentTemp));
+            // create textures for the two temperature displays
+            textRenderer.createTextTexture(s0, digitColor, screenColor, 8, 64, tempTex0, tempW0, tempH0);
+            textRenderer.createTextTexture(s1, digitColor, screenColor, 8, 64, tempTex1, tempW1, tempH1);
+        }
+
+        for (size_t i = 0; i < screensDraw.size(); ++i)
+        {
+            const auto& screen = screensDraw[i];
+            float cx = screen.x + screen.w * 0.5f;
+            float cy = screen.y + screen.h * 0.5f;
+            glm::vec3 pos = mapToAC(cx, cy, 40.0f + 4.0f);
+            float wworld = screen.w * (240.0f / acBody.w);
+            float hworld = screen.h * (100.0f / acBody.h);
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, pos);
+            model = glm::scale(model, glm::vec3(wworld, hworld, 4.0f));
+            if (i == 0 && tempTex0 != 0) {
+                renderer3D.drawTexturedCube(model, tempTex0);
+            } else if (i == 1 && tempTex1 != 0) {
+                renderer3D.drawTexturedCube(model, tempTex1);
+            } else {
+                renderer3D.drawCube(model, glm::vec3(screenColor.r, screenColor.g, screenColor.b));
+            }
+        }
+        // cleanup temporary temp textures
+        if (tempTex0 != 0) glDeleteTextures(1, &tempTex0);
+        if (tempTex1 != 0) glDeleteTextures(1, &tempTex1);
+
+        // arrows (convert to small cubes)
+        {
+            float cxTop = tempArrowDraw.x + tempArrowDraw.w * 0.5f;
+            float cyTop = tempArrowDraw.y + tempArrowDraw.h * 0.25f;
+            glm::vec3 pos = mapToAC(cxTop, cyTop, 40.0f + 4.0f);
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, pos);
+            model = glm::scale(model, glm::vec3(20.0f * (240.0f / acBody.w), 20.0f * (100.0f / acBody.h), 4.0f));
+            renderer3D.drawCube(model, glm::vec3(arrowColor.r, arrowColor.g, arrowColor.b));
+
+            float cxBot = tempArrowDraw.x + tempArrowDraw.w * 0.5f;
+            float cyBot = tempArrowDraw.y + tempArrowDraw.h * 0.75f;
+            pos = mapToAC(cxBot, cyBot, 40.0f + 4.0f);
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, pos);
+            model = glm::scale(model, glm::vec3(20.0f * (240.0f / acBody.w), 20.0f * (100.0f / acBody.h), 4.0f));
+            renderer3D.drawCube(model, glm::vec3(arrowColor.r, arrowColor.g, arrowColor.b));
+        }
+
+        // bowl: place under the AC and render as a hollow container so it can be filled
+        {
+            float depth = 80.0f;
+            float thicknessWorld = bowlThickness * (100.0f / acBody.h);
+            if (appState.holdingBowl)
+            {
+                // place bowl in front of camera when held
+                auto* ctx = static_cast<ResizeContext*>(glfwGetWindowUserPointer(window));
+                if (ctx && ctx->camera) {
+                    glm::mat4 view = ctx->camera->getViewMatrix();
+                    glm::mat4 invView = glm::inverse(view);
+                    glm::vec3 camPos(invView[3][0], invView[3][1], invView[3][2]);
+                    glm::vec3 forward = glm::normalize(glm::vec3(invView * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
+                    glm::vec3 pos = camPos + forward * 120.0f;
+                    float innerWWorld = (bowlInnerW * (240.0f / acBody.w));
+                    // held bowl inner height: box height is 40.0f, subtract wall thickness
+                    float heldBoxHeight = 40.0f;
+                    float maxInnerHeightWorld = heldBoxHeight - thicknessWorld;
+                    if (maxInnerHeightWorld < 0.0f) maxInnerHeightWorld = 0.0f;
+                    float waterHWorld = maxInnerHeightWorld * appState.waterLevel;
+
+                    renderer3D.drawHollowBoxAt(pos, innerWWorld, heldBoxHeight, depth, thicknessWorld, glm::vec3(bowlOutline.color.r, bowlOutline.color.g, bowlOutline.color.b));
+                    if (appState.waterLevel > 0.0f) {
+                        // compute inner top Y and center of water column
+                        float topY = pos.y + (heldBoxHeight * 0.5f) - thicknessWorld;
+                        float centerY = topY - waterHWorld * 0.5f;
+                        glm::mat4 wmodel = glm::mat4(1.0f);
+                        wmodel = glm::translate(wmodel, glm::vec3(pos.x, centerY, pos.z));
+                        float innerDepth = depth - 2.0f * thicknessWorld;
+                        if (innerDepth < 2.0f) innerDepth = 2.0f;
+                        wmodel = glm::scale(wmodel, glm::vec3(innerWWorld, waterHWorld, innerDepth));
+                        renderer3D.drawCube(wmodel, glm::vec3(waterColor.r, waterColor.g, waterColor.b));
+                    }
+                    if (appState.waterLevel >= 1.0f) droplets.clear();
+                }
+            }
+            else
+            {
+                // default on-floor bowl
+                float wworld = bowlDraw.w * (240.0f / acBody.w);
+                float hworld = bowlDraw.h * (100.0f / acBody.h);
+                float bowlFullHeight = hworld * 0.5f;
+                float acHalfHeight = 100.0f * 0.5f;
+                float gap = 300.0f;
+                glm::vec3 pos = glm::vec3(0.0f, -acHalfHeight - (bowlFullHeight * 0.5f) - gap, 0.0f);
+
+                renderer3D.drawHollowBoxAt(pos, wworld, bowlFullHeight, depth, thicknessWorld, glm::vec3(bowlOutline.color.r, bowlOutline.color.g, bowlOutline.color.b));
+
+                // water inside bowl
+                if (appState.waterLevel > 0.0f)
+                {
+                    // compute inner cavity max height and clamp water world height
+                    float innerWWorld = (bowlInnerW * (240.0f / acBody.w));
+                    float maxInnerHeightWorld = (bowlFullHeight - thicknessWorld);
+                    if (maxInnerHeightWorld < 0.0f) maxInnerHeightWorld = 0.0f;
+                    float waterHWorld = maxInnerHeightWorld * appState.waterLevel;
+                    // bottom of inner cavity (world coords)
+                    float innerBottomY = pos.y - (bowlFullHeight * 0.5f) + thicknessWorld;
+                    float waterCenterY = innerBottomY + waterHWorld * 0.5f;
+                    glm::vec3 wpos = glm::vec3(pos.x, waterCenterY, pos.z);
+                    glm::mat4 wmodel = glm::mat4(1.0f);
+                    wmodel = glm::translate(wmodel, wpos);
+                    float innerDepth = depth - 2.0f * thicknessWorld;
+                    if (innerDepth < 2.0f) innerDepth = 2.0f;
+                    wmodel = glm::scale(wmodel, glm::vec3(innerWWorld, waterHWorld, innerDepth));
+                    renderer3D.drawCube(wmodel, glm::vec3(waterColor.r, waterColor.g, waterColor.b));
+                    if (appState.waterLevel >= 1.0f) droplets.clear();
+                }
+            }
+        }
+
+        // now disable depth and draw text overlays as before
         glDisable(GL_DEPTH_TEST);
 
-        // 2D overlay: draw UIs and 2D elements after 3D pass
-        // (note: AC body 2D representation is omitted while 3D model is visible)
-        renderer.drawRect(ventBarDraw.x, ventBarDraw.y, ventBarDraw.w, ventBarDraw.h, ventBarDraw.color);
-        renderer.drawCircle(lampDraw.x, lampDraw.y, lampDraw.radius, lampDraw.color);
-
-        for (const auto& screen : screensDraw)
+        // Render status icon onto the third screen as a colored patch on the model
         {
-            renderer.drawRect(screen.x, screen.y, screen.w, screen.h, screenColor);
+            float cx = screensDraw[2].x + screensDraw[2].w * 0.5f;
+            float cy = screensDraw[2].y + screensDraw[2].h * 0.5f;
+            glm::vec3 pos = mapToAC(cx, cy, 40.0f + 4.0f);
+            float iconSizePixels = std::min(screensDraw[2].w, screensDraw[2].h) * 0.6f;
+            float iconW = iconSizePixels * (240.0f / acBody.w);
+            float iconH = iconSizePixels * (100.0f / acBody.h);
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, pos);
+            model = glm::scale(model, glm::vec3(iconW, iconH, 4.0f));
+
+            // pick color based on desired vs current
+            const float tolerance = 0.25f;
+            float diff = appState.desiredTemp - appState.currentTemp;
+            glm::vec3 iconColor;
+            if (diff > tolerance) iconColor = glm::vec3(0.96f, 0.46f, 0.28f); // heat
+            else if (diff < -tolerance) iconColor = glm::vec3(0.66f, 0.85f, 0.98f); // cold
+            else iconColor = glm::vec3(0.38f, 0.92f, 0.58f); // ok
+
+            renderer3D.drawCube(model, iconColor);
         }
 
-        if (appState.isOn)
-        {
-            drawTemperatureValue(textRenderer, appState.desiredTemp, screensDraw[0], digitColor);
-            drawTemperatureValue(textRenderer, appState.currentTemp, screensDraw[1], digitColor);
-            drawStatusIcon(renderer, screensDraw[2], appState.desiredTemp, appState.currentTemp);
-        }
-
-        if (appState.waterLevel > 0.0f)
-        {
-            float waterHeight = bowlInnerH * appState.waterLevel;
-            float waterY = bowlInnerY + bowlInnerH - waterHeight;
-            renderer.drawRect(bowlInnerX, waterY, bowlInnerW, waterHeight, waterColor);
-        }
-        renderer.drawFrame(bowlDraw, bowlThickness);
-        RectShape arrowTop{ tempArrowDraw.x, tempArrowDraw.y, tempArrowDraw.w, tempArrowDraw.h * 0.5f, arrowBg };
-        RectShape arrowBottom{ tempArrowDraw.x, tempArrowDraw.y + tempArrowDraw.h * 0.5f, tempArrowDraw.w, tempArrowDraw.h * 0.5f, arrowBg };
-        drawHalfArrow(renderer, arrowTop, true, arrowColor, arrowBg);
-        drawHalfArrow(renderer, arrowBottom, false, arrowColor, arrowBg);
 
         if (!frameStats.empty())
         {
