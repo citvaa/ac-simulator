@@ -713,17 +713,26 @@ int main()
 
                 renderer3D.drawHollowBoxAt(pos, wworld, bowlFullHeight, depth, thicknessWorld, glm::vec3(bowlOutline.color.r, bowlOutline.color.g, bowlOutline.color.b));
 
-                // draw loaded toilet model if available
+                // place toilet behind player/camera rather than behind AC
+                glm::vec3 toiletPos;
+                auto* ctxCam = static_cast<ResizeContext*>(glfwGetWindowUserPointer(window));
+                if (ctxCam && ctxCam->camera) {
+                    glm::mat4 view = ctxCam->camera->getViewMatrix();
+                    glm::mat4 invView = glm::inverse(view);
+                    glm::vec3 camPos(invView[3][0], invView[3][1], invView[3][2]);
+                    glm::vec3 camForward = glm::normalize(glm::vec3(invView * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
+                    toiletPos = camPos - camForward * 420.0f;
+                    toiletPos.y = pos.y; // align to floor/bowl height
+                } else {
+                    toiletPos = pos + glm::vec3(0.0f, 0.0f, -420.0f);
+                }
                 if (toiletModelId >= 0) {
-                    glm::vec3 toiletPos = pos + glm::vec3(0.0f, 0.0f, -420.0f);
                     glm::mat4 m = glm::mat4(1.0f);
                     m = glm::translate(m, toiletPos);
                     // scale to roughly match previous size
                     m = glm::scale(m, glm::vec3(wworld * 1.2f, bowlFullHeight * 1.2f, wworld * 1.2f));
                     renderer3D.drawModel(toiletModelId, m, glm::vec3(0.95f, 0.95f, 0.97f));
                 } else {
-                    // fallback to procedural toilet
-                    glm::vec3 toiletPos = pos + glm::vec3(0.0f, 0.0f, -420.0f);
                     glm::vec3 toiletColor = glm::vec3(0.95f, 0.95f, 0.97f);
                     float toiletRadius = wworld * 0.35f;
                     float toiletHeight = bowlFullHeight * 1.2f;
