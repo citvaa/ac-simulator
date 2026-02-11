@@ -65,6 +65,12 @@ int main()
     GLint overlayTintLoc = glGetUniformLocation(overlayProgram, "uTint");
     GLint overlayTextureLoc = glGetUniformLocation(overlayProgram, "uTexture");
 
+    // 3D renderer (shaders compiled and ready)
+    Renderer renderer3D;
+    if (!renderer3D.init()) {
+        return endProgram("Neuspeh pri inicijalizaciji 3D renderera.");
+    }
+
     ResizeContext resizeCtx;
     resizeCtx.renderer = &renderer;
     resizeCtx.textRenderer = &textRenderer;
