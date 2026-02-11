@@ -159,12 +159,8 @@ int main()
     const Color bowlColor{ 0.78f, 0.82f, 0.88f, 1.0f };
     const Color digitColor{ 0.96f, 0.98f, 1.0f, 1.0f };
     const Color arrowBg{ 0.15f, 0.18f, 0.22f, 1.0f };
-    // choose arrow glyph color to contrast with the button background for better visibility
-    Color arrowColor = [&]() {
-        float lum = 0.2126f * arrowBg.r + 0.7152f * arrowBg.g + 0.0722f * arrowBg.b;
-        if (lum < 0.45f) return Color{ 0.96f, 0.98f, 1.0f, 1.0f }; // light glyphs on dark bg
-        else return Color{ 0.08f, 0.08f, 0.10f, 1.0f }; // dark glyphs on light bg
-    }();
+    // arrows explicitly white (background is dark)
+    const Color arrowColor{ 1.0f, 1.0f, 1.0f, 1.0f };
     const Color waterColor{ 0.50f, 0.78f, 0.94f, 0.9f };
     const Color nameplateBg{ 0.08f, 0.08f, 0.10f, 0.45f };
     const Color nameplateText{ 0.96f, 0.98f, 1.0f, 0.95f };
