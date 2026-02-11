@@ -66,6 +66,10 @@ int main()
     const Color backgroundColor{ 0.10f, 0.12f, 0.16f, 1.0f };
     glClearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
 
+    // Runtime toggles state (default enabled)
+    bool depthTestEnabled = true;
+    bool cullEnabled = true;
+
     // Default GL states for depth testing and face culling (user can toggle at runtime)
     if (depthTestEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
     if (cullEnabled) { glEnable(GL_CULL_FACE); glCullFace(GL_BACK); } else glDisable(GL_CULL_FACE);
@@ -233,9 +237,6 @@ int main()
     bool prevLPressed = false;
     bool prevToggleDepth = false;
     bool prevToggleCull = false;
-
-    bool depthTestEnabled = true;
-    bool cullEnabled = true;
 
     AppState appState{};
     // Start with AC on so lamp and lamp-light can be observed
