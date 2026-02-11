@@ -7,6 +7,7 @@
 #include "../Header/TemperatureUI.h"
 #include "../Header/Controls.h"
 #include "../Header/TextRenderer.h"
+#include "Renderer/Renderer.h"
 
 #include <array>
 #include <algorithm>
