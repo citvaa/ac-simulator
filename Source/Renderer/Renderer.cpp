@@ -148,14 +148,14 @@ void Renderer::drawCube(const glm::mat4& model, const glm::vec3& color) {
   glUseProgram(0);
 }
 
-void Renderer::drawTexturedCube(const glm::mat4& model, GLuint texture) {
+void Renderer::drawTexturedCube(const glm::mat4& model, GLuint texture, const glm::vec3& color) {
   if (phongProgram_ == 0) return;
   glUseProgram(phongProgram_);
 
   GLint locModel = glGetUniformLocation(phongProgram_, "model");
   if (locModel >= 0) glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(model));
   GLint locMat = glGetUniformLocation(phongProgram_, "materialDiffuse");
-  if (locMat >= 0) glUniform3f(locMat, 1.0f, 1.0f, 1.0f);
+  if (locMat >= 0) glUniform3f(locMat, color.r, color.g, color.b);
   GLint locSpec = glGetUniformLocation(phongProgram_, "materialSpecular");
   if (locSpec >= 0) glUniform3f(locSpec, 0.2f, 0.2f, 0.2f);
   GLint locSh = glGetUniformLocation(phongProgram_, "shininess");

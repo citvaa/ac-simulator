@@ -220,6 +220,43 @@ int main()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glBindVertexArray(0);
 
+    // create a simple circular white texture (alpha mask) for the lamp icon so it appears round in 3D
+    GLuint lampCircleTex = 0;
+    {
+        const int texSize = 64;
+        std::vector<unsigned char> pixels(texSize * texSize * 4, 0);
+        float cx = (texSize - 1) * 0.5f;
+        float cy = (texSize - 1) * 0.5f;
+        float r = (texSize * 0.45f);
+        for (int y = 0; y < texSize; ++y) {
+            for (int x = 0; x < texSize; ++x) {
+                float dx = static_cast<float>(x) - cx;
+                float dy = static_cast<float>(y) - cy;
+                float d2 = dx*dx + dy*dy;
+                int idx = (y * texSize + x) * 4;
+                if (d2 <= r*r) {
+                    pixels[idx + 0] = 255;
+                    pixels[idx + 1] = 255;
+                    pixels[idx + 2] = 255;
+                    pixels[idx + 3] = 255;
+                } else {
+                    pixels[idx + 0] = 0;
+                    pixels[idx + 1] = 0;
+                    pixels[idx + 2] = 0;
+                    pixels[idx + 3] = 0;
+                }
+            }
+        }
+        glGenTextures(1, &lampCircleTex);
+        glBindTexture(GL_TEXTURE_2D, lampCircleTex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texSize, texSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
     // Create and set a simple remote-shaped cursor (hotspot at laser dot top-left).
     auto setProceduralCursor = [&]()
     {
@@ -715,9 +752,10 @@ int main()
             float diam = lampDraw.radius * 2.0f * (240.0f / acBody.w);
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, pos);
-            model = glm::scale(model, glm::vec3(diam, diam, diam));
+            // scale to a flat quad (thin depth) so textured front face shows circular icon
+            model = glm::scale(model, glm::vec3(diam, diam, 2.0f));
             glm::vec3 lampCol(lampDraw.color.r, lampDraw.color.g, lampDraw.color.b);
-            renderer3D.drawCube(model, lampCol);
+            renderer3D.drawTexturedCube(model, lampCircleTex, lampCol);
         }
 
         // screens: render desired/current temperatures onto the first two screens using text textures

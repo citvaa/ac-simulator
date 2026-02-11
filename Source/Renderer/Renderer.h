@@ -19,7 +19,8 @@ public:
   void drawCube(const glm::mat4& model, const glm::vec3& color);
 
   // draw cube but sample the provided texture (bound to GL_TEXTURE0)
-  void drawTexturedCube(const glm::mat4& model, GLuint texture);
+  // color tints the sampled texture (use alpha for mask)
+  void drawTexturedCube(const glm::mat4& model, GLuint texture, const glm::vec3& color = glm::vec3(1.0f));
   // draw semi-transparent particle (approximated sphere as cube)
   void drawParticle(const glm::mat4& model, const glm::vec3& color, float alpha);
 
