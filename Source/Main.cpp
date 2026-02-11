@@ -707,6 +707,33 @@ int main()
 
                 renderer3D.drawHollowBoxAt(pos, wworld, bowlFullHeight, depth, thicknessWorld, glm::vec3(bowlOutline.color.r, bowlOutline.color.g, bowlOutline.color.b));
 
+                // simple toilet model placed behind the scene (where water spills)
+                {
+                    glm::vec3 toiletPos = pos + glm::vec3(0.0f, 0.0f, -420.0f);
+                    glm::vec3 toiletColor = glm::vec3(0.95f, 0.95f, 0.97f);
+                    // bowl: hollow cylinder
+                    float toiletRadius = wworld * 0.35f; // slightly narrower than bowl width
+                    float toiletHeight = bowlFullHeight * 1.2f;
+                    float toiletThickness = thicknessWorld * 1.2f;
+                    renderer3D.drawHollowCylinderAt(toiletPos, toiletRadius, toiletHeight, toiletThickness, 32, toiletColor);
+
+                    // tank: simple box sitting behind the bowl
+                    glm::mat4 tankModel = glm::mat4(1.0f);
+                    glm::vec3 tankSize = glm::vec3(toiletRadius * 1.2f * 2.0f, toiletHeight * 0.6f, 40.0f);
+                    glm::vec3 tankPos = toiletPos + glm::vec3(0.0f, toiletHeight * 0.5f + tankSize.y * 0.5f - 10.0f, -20.0f);
+                    tankModel = glm::translate(tankModel, tankPos);
+                    tankModel = glm::scale(tankModel, tankSize);
+                    renderer3D.drawCube(tankModel, toiletColor);
+
+                    // seat: thin ring approximated by a scaled cube on top of bowl
+                    glm::mat4 seatModel = glm::mat4(1.0f);
+                    glm::vec3 seatSize = glm::vec3(toiletRadius * 1.6f * 2.0f, 6.0f, toiletRadius * 1.6f * 2.0f);
+                    glm::vec3 seatPos = toiletPos + glm::vec3(0.0f, toiletHeight * 0.45f + 3.0f, 0.0f);
+                    seatModel = glm::translate(seatModel, seatPos);
+                    seatModel = glm::scale(seatModel, seatSize);
+                    renderer3D.drawCube(seatModel, glm::vec3(0.9f, 0.9f, 0.91f));
+                }
+
                 // water inside bowl
                 if (appState.waterLevel > 0.0f)
                 {
