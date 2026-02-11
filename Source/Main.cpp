@@ -322,7 +322,13 @@ int main()
         // Update camera each frame
         {
             auto* ctx = static_cast<ResizeContext*>(glfwGetWindowUserPointer(window));
-            if (ctx && ctx->camera) ctx->camera->update(deltaTime);
+            if (ctx && ctx->camera) {
+                ctx->camera->update(deltaTime);
+                // upload camera matrices to 3D renderer
+                glm::mat4 view = ctx->camera->getViewMatrix();
+                glm::mat4 proj = ctx->camera->getProjectionMatrix();
+                renderer3D.setViewProjection(view, proj);
+            }
         }
 
         lampDraw.color = appState.isOn ? lampOnColor : lampOffColor;
