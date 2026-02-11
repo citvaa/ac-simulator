@@ -30,10 +30,6 @@ public:
   // thickness is wall thickness in world units
   void drawHollowBoxAt(const glm::vec3& center, float width, float height, float depth, float thickness, const glm::vec3& color);
 
-  // model loading & drawing (simple OBJ support)
-  int loadOBJModel(const std::string& path);
-  void drawModel(int modelId, const glm::mat4& model, const glm::vec3& color);
-
 private:
   std::string loadShaderSource(const char* path);
   unsigned int createShaderProgram(const char* vertPath, const char* fragPath);

@@ -350,7 +350,6 @@ void Renderer::drawModel(int modelId, const glm::mat4& model, const glm::vec3& c
   glBindVertexArray(0);
   glUseProgram(0);
 }
-}
 
 void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
   // compute camera position from inverse view
