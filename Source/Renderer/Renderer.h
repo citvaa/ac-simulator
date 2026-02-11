@@ -32,14 +32,18 @@ public:
 
 private:
   // scene light visualization stored here so marker can be drawn after scene
-  glm::vec3 sceneLightPos_ = glm::vec3(0.0f);
+  glm::vec3 sceneLightPos_ = glm::vec3(-250.0f, 200.0f, 40.0f);
   glm::vec3 sceneLightColor_ = glm::vec3(1.0f);
-  float sceneLightIntensity_ = 1.0f;
+  float sceneLightIntensity_ = 0.75f;
 
   std::string loadShaderSource(const char* path);
   unsigned int createShaderProgram(const char* vertPath, const char* fragPath);
   unsigned int phongProgram_ = 0;
   unsigned int blinnProgram_ = 0;
+
+public:
+  // set scene light explicitly (independent from AC/lamp)
+  void setSceneLight(const glm::vec3& pos, const glm::vec3& color, float intensity);
 
   // cube mesh
   unsigned int cubeVao_ = 0;

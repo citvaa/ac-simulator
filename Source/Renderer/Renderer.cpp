@@ -412,6 +412,13 @@ void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
       lightLogged = true;
     }
   }
+
+void Renderer::setSceneLight(const glm::vec3& pos, const glm::vec3& color, float intensity) {
+  sceneLightPos_ = pos;
+  sceneLightColor_ = color;
+  sceneLightIntensity_ = intensity;
+}
+
   if (blinnProgram_ != 0) {
     glUseProgram(blinnProgram_);
     GLint loc = glGetUniformLocation(blinnProgram_, "view");
