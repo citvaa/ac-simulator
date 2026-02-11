@@ -106,7 +106,11 @@ int main()
     // load toilet model (optional)
     int toiletModelId = -1;
     {
+        // try relative paths (when running from build dir the executable cwd is cmake-build-debug)
         toiletModelId = renderer3D.loadOBJModel("Assets/models/toilet.obj");
+        if (toiletModelId < 0) toiletModelId = renderer3D.loadOBJModel("../Assets/models/toilet.obj");
+        if (toiletModelId < 0) toiletModelId = renderer3D.loadOBJModel("./Assets/models/toilet.obj");
+
         if (toiletModelId < 0) {
             // print to stderr so IDE/build output shows whether the model was found/loaded
             fprintf(stderr, "Warning: toilet.obj failed to load (path: Assets/models/toilet.obj)\n");
