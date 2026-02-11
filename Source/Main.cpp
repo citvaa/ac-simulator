@@ -331,7 +331,18 @@ int main()
         handleTemperatureInput(appState, upPressed, downPressed);
         updateVent(appState, deltaTime);
         updateTemperature(appState, deltaTime);
-        updateWater(appState, deltaTime, spacePressed);
+        // compute camera position and forward for gating SPACE interactions
+        glm::vec3 camPos(0.0f), camForward(0.0f,0.0f,-1.0f);
+        {
+            auto* ctx = static_cast<ResizeContext*>(glfwGetWindowUserPointer(window));
+            if (ctx && ctx->camera) {
+                glm::mat4 view = ctx->camera->getViewMatrix();
+                glm::mat4 invView = glm::inverse(view);
+                camPos = glm::vec3(invView[3][0], invView[3][1], invView[3][2]);
+                camForward = glm::normalize(glm::vec3(invView * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
+            }
+        }
+        updateWater(appState, deltaTime, spacePressed, camPos, camForward);
 
         // Update camera each frame
         glm::mat4 currentView = glm::mat4(1.0f);
@@ -435,8 +446,8 @@ int main()
                 if (tmax <= tmin) break;
             }
             if (tmax > tmin && tmax > 0.0f) {
-                // hit the bowl: if full, pick it up
-                if (appState.waterLevel >= 0.99f) {
+                // hit the bowl: if full and AC is off, pick it up
+                if (appState.waterLevel >= 0.99f && !appState.isOn) {
                     appState.holdingBowl = !appState.holdingBowl;
                 }
             }

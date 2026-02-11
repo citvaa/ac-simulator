@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Header/Renderer2D.h"
+#include <glm/glm.hpp>
 
 // Mutable simulation state updated every frame.
 struct AppState
@@ -27,4 +28,5 @@ void handlePowerToggle(AppState& state, double mouseX, double mouseY, bool mouse
 void updateVent(AppState& state, float deltaTime);
 void handleTemperatureInput(AppState& state, bool upPressed, bool downPressed);
 void updateTemperature(AppState& state, float deltaTime);
-void updateWater(AppState& state, float deltaTime, bool spacePressed);
+// camera position and forward are used to gate SPACE interactions when holding the bowl
+void updateWater(AppState& state, float deltaTime, bool spacePressed, const glm::vec3& camPos, const glm::vec3& camForward);
