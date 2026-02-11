@@ -356,6 +356,13 @@ int main()
         }
         updateWater(appState, deltaTime, spacePressed, camPos, camForward);
 
+        // hide the OS cursor when the bowl is held so only the remote model is visible
+        if (appState.holdingBowl) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        } else {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+
         // Update camera each frame
         glm::mat4 currentView = glm::mat4(1.0f);
         glm::mat4 currentProj = glm::mat4(1.0f);
