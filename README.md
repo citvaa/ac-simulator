@@ -24,6 +24,7 @@ Run the binary from the repository root so shader relative paths resolve, for ex
 - Set the Run/Debug configuration Working directory to the project root so shader paths resolve.
 - If libraries aren't found, set CMake variables or add Homebrew include/lib paths in CLion settings.
 
+Scene lighting: there is a scene light source with configurable color, intensity and position which illuminates all objects on the scene.
 
 ## Run
 After building, start from the repo root so shader relative paths resolve, e.g.:
