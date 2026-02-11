@@ -107,6 +107,12 @@ int main()
     int toiletModelId = -1;
     {
         toiletModelId = renderer3D.loadOBJModel("Assets/models/toilet.obj");
+        if (toiletModelId < 0) {
+            // print to stderr so IDE/build output shows whether the model was found/loaded
+            fprintf(stderr, "Warning: toilet.obj failed to load (path: Assets/models/toilet.obj)\n");
+        } else {
+            fprintf(stderr, "Loaded toilet.obj as model id %d\n", toiletModelId);
+        }
     }
 
     glfwSetCursorPosCallback(window, [](GLFWwindow* win, double x, double y)
