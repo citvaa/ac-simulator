@@ -41,6 +41,8 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // request a depth buffer so 3D rendering has proper depth testing
+    glfwWindowHint(GLFW_DEPTH_BITS, 24);
 
     GLFWmonitor* primary = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primary); // fullscreen mode descriptor
@@ -355,7 +357,8 @@ int main()
 
         glDisable(GL_DEPTH_TEST);
 
-        renderer.drawRect(acBodyDraw.x, acBodyDraw.y, acBodyDraw.w, acBodyDraw.h, acBodyDraw.color);
+        // 2D overlay: draw UIs and 2D elements after 3D pass
+        // (note: AC body 2D representation is omitted while 3D model is visible)
         renderer.drawRect(ventBarDraw.x, ventBarDraw.y, ventBarDraw.w, ventBarDraw.h, ventBarDraw.color);
         renderer.drawCircle(lampDraw.x, lampDraw.y, lampDraw.radius, lampDraw.color);
 
