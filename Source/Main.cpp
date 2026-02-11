@@ -66,6 +66,10 @@ int main()
     const Color backgroundColor{ 0.10f, 0.12f, 0.16f, 1.0f };
     glClearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
 
+    // Default GL states for depth testing and face culling (user can toggle at runtime)
+    if (depthTestEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+    if (cullEnabled) { glEnable(GL_CULL_FACE); glCullFace(GL_BACK); } else glDisable(GL_CULL_FACE);
+
     // Shader program and basic geometry
     Renderer2D renderer(fbWidth, fbHeight, "Shaders/basic.vert", "Shaders/basic.frag");
     TextRenderer textRenderer(fbWidth, fbHeight);
@@ -227,6 +231,11 @@ int main()
 
     bool prevCPressed = false;
     bool prevLPressed = false;
+    bool prevToggleDepth = false;
+    bool prevToggleCull = false;
+
+    bool depthTestEnabled = true;
+    bool cullEnabled = true;
 
     AppState appState{};
     // Start with AC on so lamp and lamp-light can be observed
@@ -276,6 +285,21 @@ int main()
         }
         // Camera mode toggle disabled: single movement mode with visible cursor
         prevCPressed = false;
+
+        bool tPressed = glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS;
+        bool cTogglePressed = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+        if (tPressed && !prevToggleDepth) {
+            depthTestEnabled = !depthTestEnabled;
+            if (depthTestEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+            fprintf(stderr, "Depth test %s\n", depthTestEnabled ? "ENABLED" : "DISABLED");
+        }
+        if (cTogglePressed && !prevToggleCull) {
+            cullEnabled = !cullEnabled;
+            if (cullEnabled) { glEnable(GL_CULL_FACE); glCullFace(GL_BACK); } else glDisable(GL_CULL_FACE);
+            fprintf(stderr, "Backface culling %s\n", cullEnabled ? "ENABLED" : "DISABLED");
+        }
+        prevToggleDepth = tPressed;
+        prevToggleCull = cTogglePressed;
 
         bool clickStarted = mouseDown && !appState.prevMouseDown;
 
@@ -542,7 +566,8 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 3D pass: draw AC unit cube and lid
-        glEnable(GL_DEPTH_TEST);
+        if (depthTestEnabled) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+        if (cullEnabled) { glEnable(GL_CULL_FACE); glCullFace(GL_BACK); } else glDisable(GL_CULL_FACE);
 
         // update particles (physics + spawning)
         {

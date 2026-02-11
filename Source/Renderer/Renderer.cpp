@@ -110,11 +110,12 @@ void Renderer::render() {
   glm::vec3 markerColor = glm::vec3(1.0f, 1.0f, 0.0f);
 
   // draw on top of scene
-  glDisable(GL_DEPTH_TEST);
+  GLboolean prevDepth = glIsEnabled(GL_DEPTH_TEST);
+  if (prevDepth) glDisable(GL_DEPTH_TEST);
   glDepthMask(GL_FALSE);
   drawCube(lightModel, markerColor);
   glDepthMask(GL_TRUE);
-  glEnable(GL_DEPTH_TEST);
+  if (prevDepth) glEnable(GL_DEPTH_TEST);
 }
 
 void Renderer::drawCube(const glm::mat4& model, const glm::vec3& color) {
