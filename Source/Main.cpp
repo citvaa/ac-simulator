@@ -943,6 +943,10 @@ int main()
 
         if (!frameStats.empty())
         {
+            // Ensure UI text and overlays are not culled by face-culling state
+            GLboolean prevCull = glIsEnabled(GL_CULL_FACE);
+            if (prevCull) glDisable(GL_CULL_FACE);
+
             float statsScale = 0.6f;
             float margin = 16.0f;
             textRenderer.drawText(frameStats, margin, margin, statsScale, digitColor);
@@ -958,10 +962,42 @@ int main()
             float dy = margin;
             textRenderer.drawText(depthStr, dx, dy, indicatorScale, digitColor);
             textRenderer.drawText(cullStr, iright - cm.width, dy + dm.height + 4.0f, indicatorScale, digitColor);
+
+            // draw nameplate overlay if present
+            if (nameplateTexture != 0)
+            {
+                float margin2 = 20.0f;
+                float overlayX = static_cast<float>(windowWidth) - static_cast<float>(nameplateW) - margin2;
+                float overlayY = static_cast<float>(windowHeight) - static_cast<float>(nameplateH) - margin2;
+
+                float vertices[6][4] = {
+                    { overlayX,                          overlayY + nameplateH, 0.0f, 0.0f },
+                    { overlayX,                          overlayY,               0.0f, 1.0f },
+                    { overlayX + nameplateW,             overlayY,               1.0f, 1.0f },
+
+                    { overlayX,                          overlayY + nameplateH, 0.0f, 0.0f },
+                    { overlayX + nameplateW,             overlayY,               1.0f, 1.0f },
+                    { overlayX + nameplateW,             overlayY + nameplateH, 1.0f, 0.0f },
+                };
+
+                glUseProgram(overlayProgram);
+                glUniform2f(overlayWindowSizeLoc, static_cast<float>(windowWidth), static_cast<float>(windowHeight));
+                glUniform4f(overlayTintLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+                glUniform1i(overlayTextureLoc, 0);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, nameplateTexture);
+
+                glBindVertexArray(overlayVao);
+                glBindBuffer(GL_ARRAY_BUFFER, overlayVbo);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+                glBindVertexArray(0);
+            }
+
+            // restore culling state
+            if (prevCull) glEnable(GL_CULL_FACE);
         }
 
-        if (nameplateTexture != 0)
-        {
             float margin = 20.0f;
             float overlayX = static_cast<float>(windowWidth) - static_cast<float>(nameplateW) - margin;
             float overlayY = static_cast<float>(windowHeight) - static_cast<float>(nameplateH) - margin;
