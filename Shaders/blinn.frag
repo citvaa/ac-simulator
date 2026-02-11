@@ -24,9 +24,10 @@ void main() {
   vec3 halfDir = normalize(lightDir + viewDir);
   float spec = pow(max(dot(norm, halfDir), 0.0), shininess);
 
+  float mainIntensity = 1.5; // always-on scene light
   vec3 ambient = 0.1 * materialDiffuse * light.color;
-  vec3 diffuse = diff * materialDiffuse * light.color * light.intensity;
-  vec3 specular = spec * materialSpecular * light.color * light.intensity;
+  vec3 diffuse = diff * materialDiffuse * light.color * mainIntensity;
+  vec3 specular = spec * materialSpecular * light.color * mainIntensity;
   vec3 color = ambient + diffuse + specular;
 
   vec4 texColor = texture(tex, TexCoord);
