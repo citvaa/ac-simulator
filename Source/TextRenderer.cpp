@@ -133,7 +133,8 @@ bool TextRenderer::loadFont(const std::string& fontPath, unsigned int pixelHeigh
     destroyGlyphTextures();
     m_fontPixelHeight = pixelHeight;
 
-    const std::string charset = " -0123456789CFPSfpsdtm."; // glyphs we preload up front
+    // preload a broad set of common printable ASCII characters so UI strings render reliably
+    const std::string charset = " !\"#$%&'()*+,-./0123456789:;<>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"; // glyphs we preload up front
     for (char c : charset)
     {
         if (FT_Load_Char(face, c, FT_LOAD_RENDER))
