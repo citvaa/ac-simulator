@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <vector>
 
 Renderer::Renderer() {}
 Renderer::~Renderer() {
@@ -30,10 +31,30 @@ void Renderer::render() {
 }
 
 std::string Renderer::loadShaderSource(const char* path) {
-  std::ifstream in(path);
-  if(!in) return std::string();
-  std::stringstream ss; ss << in.rdbuf();
-  return ss.str();
+  std::vector<std::string> candidates = { std::string(path), std::string("../") + path, std::string("./") + path };
+  for (const auto& p : candidates) {
+    std::ifstream in(p);
+    if (in) {
+      std::stringstream ss; ss << in.rdbuf();
+      std::cerr << "Loaded shader from: " << p << std::endl;
+      return ss.str();
+    }
+  }
+
+  std::string basename(path);
+  auto pos = basename.find_last_of("/\\");
+  if (pos != std::string::npos) basename = basename.substr(pos + 1);
+  std::vector<std::string> more = { std::string("Shaders/") + basename, std::string("../Shaders/") + basename };
+  for (const auto& p : more) {
+    std::ifstream in(p);
+    if (in) {
+      std::stringstream ss; ss << in.rdbuf();
+      std::cerr << "Loaded shader from: " << p << std::endl;
+      return ss.str();
+    }
+  }
+
+  return std::string();
 }
 
 static unsigned int compileShader(GLenum type, const std::string& src) {
