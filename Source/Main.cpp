@@ -320,6 +320,7 @@ int main()
         float bowlInnerW = bowlDraw.w - 2.0f * bowlThickness;
         float bowlInnerH = bowlDraw.h - 2.0f * bowlThickness;
 
+        bool tempArrowClicked = false;
         if (clickStarted && !appState.lockedByFullBowl)
         {
             if (pointInRect(mouseX, mouseY, tempArrowDraw))
@@ -333,10 +334,14 @@ int main()
                 {
                     appState.desiredTemp -= appState.tempChangeStep;
                 }
+                tempArrowClicked = true;
             }
 
-            if (appState.desiredTemp < -10.0f) appState.desiredTemp = -10.0f;
-            if (appState.desiredTemp > 40.0f) appState.desiredTemp = 40.0f;
+            if (tempArrowClicked)
+            {
+                if (appState.desiredTemp < -10.0f) appState.desiredTemp = -10.0f;
+                if (appState.desiredTemp > 40.0f) appState.desiredTemp = 40.0f;
+            }
         }
 
         handlePowerToggle(appState, mouseX, mouseY, mouseDown, lampDraw);
@@ -451,6 +456,61 @@ int main()
                     glm::vec3 lampColorVec = appState.isOn ? glm::vec3(0.93f, 0.22f, 0.20f) : glm::vec3(0.12f);
                     float lampIntensity = appState.isOn ? 3.0f : 0.0f;
                     renderer3D.setLampLight(lampWorldPos, lampColorVec, lampIntensity, appState.isOn);
+                }
+            }
+
+            auto hitAABB = [&](const glm::vec3& center, const glm::vec3& halfExtents) -> bool
+            {
+                glm::vec3 minB = center - halfExtents;
+                glm::vec3 maxB = center + halfExtents;
+                float tmin = 0.0f; float tmax = 1e9f;
+                for (int i = 0; i < 3; ++i) {
+                    float invD = 1.0f / ((&rayDir.x)[i]);
+                    float t0 = ((&minB.x)[i] - (&rayOrigin.x)[i]) * invD;
+                    float t1 = ((&maxB.x)[i] - (&rayOrigin.x)[i]) * invD;
+                    if (invD < 0.0f) std::swap(t0, t1);
+                    tmin = std::max(tmin, t0);
+                    tmax = std::min(tmax, t1);
+                    if (tmax <= tmin) break;
+                }
+                return (tmax > tmin && tmax > 0.0f);
+            };
+
+            // test arrow buttons (AABB) in 3D so clicks work with camera movement
+            if (!tempArrowClicked && !appState.lockedByFullBowl) {
+                float acCenterX = acBodyDraw.x + acBodyDraw.w * 0.5f;
+                float acCenterY = acBodyDraw.y + acBodyDraw.h * 0.5f;
+                auto mapToACPick = [&](float px, float py, float z)->glm::vec3 {
+                    float localX = (px - acCenterX) * (240.0f / acBody.w);
+                    float localY = (acCenterY - py) * (100.0f / acBody.h);
+                    return glm::vec3(localX, localY, z);
+                };
+
+                float scaleX = 240.0f / acBody.w;
+                float scaleY = 100.0f / acBody.h;
+                float halfH = tempArrowDraw.h * 0.5f;
+                float wworld = tempArrowDraw.w * scaleX;
+                float hworld = halfH * scaleY;
+                float zFront = 40.0f + 4.0f;
+
+                float cx = tempArrowDraw.x + tempArrowDraw.w * 0.5f;
+                float cyTop = tempArrowDraw.y + halfH * 0.5f;
+                float cyBot = tempArrowDraw.y + halfH + halfH * 0.5f;
+                glm::vec3 halfExtents(wworld * 0.5f, hworld * 0.5f, 2.0f);
+
+                glm::vec3 topPos = mapToACPick(cx, cyTop, zFront);
+                glm::vec3 botPos = mapToACPick(cx, cyBot, zFront);
+                if (hitAABB(topPos, halfExtents)) {
+                    appState.desiredTemp += appState.tempChangeStep;
+                    tempArrowClicked = true;
+                } else if (hitAABB(botPos, halfExtents)) {
+                    appState.desiredTemp -= appState.tempChangeStep;
+                    tempArrowClicked = true;
+                }
+
+                if (tempArrowClicked) {
+                    if (appState.desiredTemp < -10.0f) appState.desiredTemp = -10.0f;
+                    if (appState.desiredTemp > 40.0f) appState.desiredTemp = 40.0f;
                 }
             }
 
@@ -668,23 +728,47 @@ int main()
         if (tempTex0 != 0) glDeleteTextures(1, &tempTex0);
         if (tempTex1 != 0) glDeleteTextures(1, &tempTex1);
 
-        // arrows (convert to small cubes)
+        // arrows (draw button halves with visible arrow glyphs)
         {
-            float cxTop = tempArrowDraw.x + tempArrowDraw.w * 0.5f;
-            float cyTop = tempArrowDraw.y + tempArrowDraw.h * 0.25f;
-            glm::vec3 pos = mapToAC(cxTop, cyTop, 40.0f + 4.0f);
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, pos);
-            model = glm::scale(model, glm::vec3(20.0f * (240.0f / acBody.w), 20.0f * (100.0f / acBody.h), 4.0f));
-            renderer3D.drawCube(model, glm::vec3(arrowColor.r, arrowColor.g, arrowColor.b));
+            float scaleX = 240.0f / acBody.w;
+            float scaleY = 100.0f / acBody.h;
+            float halfH = tempArrowDraw.h * 0.5f;
+            float wworld = tempArrowDraw.w * scaleX;
+            float hworld = halfH * scaleY;
+            float cx = tempArrowDraw.x + tempArrowDraw.w * 0.5f;
+            float cyTop = tempArrowDraw.y + halfH * 0.5f;
+            float cyBot = tempArrowDraw.y + halfH + halfH * 0.5f;
+            float zFront = 40.0f + 4.0f;
 
-            float cxBot = tempArrowDraw.x + tempArrowDraw.w * 0.5f;
-            float cyBot = tempArrowDraw.y + tempArrowDraw.h * 0.75f;
-            pos = mapToAC(cxBot, cyBot, 40.0f + 4.0f);
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, pos);
-            model = glm::scale(model, glm::vec3(20.0f * (240.0f / acBody.w), 20.0f * (100.0f / acBody.h), 4.0f));
-            renderer3D.drawCube(model, glm::vec3(arrowColor.r, arrowColor.g, arrowColor.b));
+            auto drawArrowHalf = [&](float cy, bool isUp)
+            {
+                glm::vec3 pos = mapToAC(cx, cy, zFront);
+                glm::mat4 model = glm::mat4(1.0f);
+                model = glm::translate(model, pos);
+                model = glm::scale(model, glm::vec3(wworld, hworld, 4.0f));
+                renderer3D.drawCube(model, glm::vec3(arrowBg.r, arrowBg.g, arrowBg.b));
+
+                int steps = 6;
+                float glyphH = halfH * 0.7f;
+                float glyphW = tempArrowDraw.w * 0.6f;
+                float stepH = glyphH / static_cast<float>(steps);
+                for (int i = 0; i < steps; ++i)
+                {
+                    float t = (static_cast<float>(i) + 1.0f) / static_cast<float>(steps);
+                    float w = glyphW * t;
+                    float h = stepH * 0.85f;
+                    float y = isUp ? (cy - glyphH * 0.5f + static_cast<float>(i) * stepH)
+                                   : (cy + glyphH * 0.5f - (static_cast<float>(i) + 1.0f) * stepH);
+                    glm::vec3 gpos = mapToAC(cx, y, zFront + 1.0f);
+                    glm::mat4 gmodel = glm::mat4(1.0f);
+                    gmodel = glm::translate(gmodel, gpos);
+                    gmodel = glm::scale(gmodel, glm::vec3(w * scaleX, h * scaleY, 2.0f));
+                    renderer3D.drawCube(gmodel, glm::vec3(arrowColor.r, arrowColor.g, arrowColor.b));
+                }
+            };
+
+            drawArrowHalf(cyTop, true);
+            drawArrowHalf(cyBot, false);
         }
 
         // bowl: place under the AC and render as a hollow container so it can be filled

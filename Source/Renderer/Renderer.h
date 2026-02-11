@@ -33,7 +33,7 @@ public:
 private:
   // scene light visualization stored here so marker can be drawn after scene
   glm::vec3 sceneLightPos_ = glm::vec3(-350.0f, 260.0f, 40.0f);
-  glm::vec3 sceneLightColor_ = glm::vec3(1.0f, 1.0f, 1.0f);
+  glm::vec3 sceneLightColor_ = glm::vec3(1.0f, 0.95f, 0.2f);
   float sceneLightIntensity_ = 2.5f;
 
   std::string loadShaderSource(const char* path);
