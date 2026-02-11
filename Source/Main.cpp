@@ -723,20 +723,21 @@ int main()
 
                 renderer3D.drawHollowBoxAt(pos, wworld, bowlFullHeight, depth, thicknessWorld, glm::vec3(bowlOutline.color.r, bowlOutline.color.g, bowlOutline.color.b));
 
-                // place toilet behind player/camera rather than behind AC
-                glm::vec3 toiletPos;
+                // place toilet at a fixed world position behind the player (computed once)
+                static bool toiletWorldSet = false;
+                static glm::vec3 toiletWorldPos(0.0f);
                 auto* ctxCam = static_cast<ResizeContext*>(glfwGetWindowUserPointer(window));
-                if (ctxCam && ctxCam->camera) {
+                if (!toiletWorldSet && ctxCam && ctxCam->camera) {
                     glm::mat4 view = ctxCam->camera->getViewMatrix();
                     glm::mat4 invView = glm::inverse(view);
                     glm::vec3 camPos(invView[3][0], invView[3][1], invView[3][2]);
                     glm::vec3 camForward = glm::normalize(glm::vec3(invView * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
-                    // place toilet behind camera (player) at a moderate distance
-                    toiletPos = camPos - camForward * 250.0f;
-                    toiletPos.y = pos.y; // align to floor/bowl height
-                } else {
-                    toiletPos = pos + glm::vec3(0.0f, 0.0f, -420.0f);
+                    toiletWorldPos = camPos - camForward * 250.0f; // place 250 units behind initial camera
+                    toiletWorldPos.y = pos.y; // align to floor/bowl height
+                    toiletWorldSet = true;
                 }
+                glm::vec3 toiletPos = toiletWorldSet ? toiletWorldPos : (pos + glm::vec3(0.0f, 0.0f, -420.0f));
+
                 if (toiletModelId >= 0) {
                     glm::mat4 m = glm::mat4(1.0f);
                     m = glm::translate(m, toiletPos);
