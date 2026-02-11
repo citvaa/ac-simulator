@@ -554,7 +554,7 @@ int main()
                 float halfH = tempArrowDraw.h * 0.5f;
                 float wworld = tempArrowDraw.w * scaleX;
                 float hworld = halfH * scaleY;
-                float zFront = 40.0f + 4.0f;
+                float zFront = 40.0f + 6.0f;
 
                 float cx = tempArrowDraw.x + tempArrowDraw.w * 0.5f;
                 float cyTop = tempArrowDraw.y + halfH * 0.5f;
@@ -803,7 +803,7 @@ int main()
             float cx = tempArrowDraw.x + tempArrowDraw.w * 0.5f;
             float cyTop = tempArrowDraw.y + halfH * 0.5f;
             float cyBot = tempArrowDraw.y + halfH + halfH * 0.5f;
-            float zFront = 40.0f + 4.0f;
+            float zFront = 40.0f + 6.0f;
 
             auto drawArrowHalf = [&](float cy, bool isUp)
             {
