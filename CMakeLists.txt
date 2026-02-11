@@ -64,5 +64,20 @@ endif()
 # Add Homebrew and /usr/local library directories so the linker finds brewed libraries on macOS
 target_link_directories(ac-simulator PRIVATE /opt/homebrew/lib /usr/local/lib)
 
+# Optional model loaders
+find_package(ASSIMP QUIET)
+if(ASSIMP_FOUND)
+  target_include_directories(ac-simulator PRIVATE ${ASSIMP_INCLUDE_DIRS})
+  target_link_libraries(ac-simulator PRIVATE ${ASSIMP_LIBRARIES})
+elseif(TARGET assimp::assimp)
+  target_link_libraries(ac-simulator PRIVATE assimp::assimp)
+endif()
+
+# tinyobjloader (header-only) - try common include paths
+find_path(TINYOBJLOADER_INCLUDE tiny_obj_loader.h HINTS /usr/include /usr/local/include /opt/homebrew/include)
+if(TINYOBJLOADER_INCLUDE)
+  target_include_directories(ac-simulator PRIVATE ${TINYOBJLOADER_INCLUDE})
+endif()
+
 # Note about running
 message(STATUS "Note: Run the binary from the repository root so shader relative paths resolve (see README.md).")
