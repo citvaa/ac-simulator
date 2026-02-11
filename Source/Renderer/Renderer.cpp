@@ -130,12 +130,31 @@ void Renderer::drawCube(const glm::mat4& model, const glm::vec3& color) {
 }
 
 void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
+  // compute camera position from inverse view
+  glm::mat4 invView = glm::inverse(view);
+  glm::vec3 camPos(invView[3][0], invView[3][1], invView[3][2]);
+
+  // default light
+  glm::vec3 lightPos = glm::vec3(0.0f, 400.0f, 400.0f);
+  glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+  float lightIntensity = 1.0f;
+
   if (phongProgram_ != 0) {
     glUseProgram(phongProgram_);
     GLint loc = glGetUniformLocation(phongProgram_, "view");
     if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(view));
     loc = glGetUniformLocation(phongProgram_, "projection");
     if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(proj));
+
+    GLint lp = glGetUniformLocation(phongProgram_, "light.position");
+    GLint lc = glGetUniformLocation(phongProgram_, "light.color");
+    GLint li = glGetUniformLocation(phongProgram_, "light.intensity");
+    if (lp >= 0) glUniform3f(lp, lightPos.x, lightPos.y, lightPos.z);
+    if (lc >= 0) glUniform3f(lc, lightColor.r, lightColor.g, lightColor.b);
+    if (li >= 0) glUniform1f(li, lightIntensity);
+
+    GLint viewPosLoc = glGetUniformLocation(phongProgram_, "viewPos");
+    if (viewPosLoc >= 0) glUniform3f(viewPosLoc, camPos.x, camPos.y, camPos.z);
   }
   if (blinnProgram_ != 0) {
     glUseProgram(blinnProgram_);
@@ -143,6 +162,16 @@ void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
     if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(view));
     loc = glGetUniformLocation(blinnProgram_, "projection");
     if (loc >= 0) glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(proj));
+
+    GLint lp = glGetUniformLocation(blinnProgram_, "light.position");
+    GLint lc = glGetUniformLocation(blinnProgram_, "light.color");
+    GLint li = glGetUniformLocation(blinnProgram_, "light.intensity");
+    if (lp >= 0) glUniform3f(lp, lightPos.x, lightPos.y, lightPos.z);
+    if (lc >= 0) glUniform3f(lc, lightColor.r, lightColor.g, lightColor.b);
+    if (li >= 0) glUniform1f(li, lightIntensity);
+
+    GLint viewPosLoc = glGetUniformLocation(blinnProgram_, "viewPos");
+    if (viewPosLoc >= 0) glUniform3f(viewPosLoc, camPos.x, camPos.y, camPos.z);
   }
   glUseProgram(0);
 }
