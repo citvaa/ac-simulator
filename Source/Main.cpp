@@ -381,6 +381,9 @@ int main()
                 float lampIntensity = appState.isOn ? 3.0f : 0.0f;
                 renderer3D.setLampLight(lampWorldPos, lampColorVec, lampIntensity, appState.isOn);
 
+                // ensure scene light stays on regardless of AC state
+                renderer3D.setSceneLight(glm::vec3(-250.0f, 200.0f, 40.0f), glm::vec3(1.0f,1.0f,1.0f), 0.75f);
+
                 // upload camera matrices to 3D renderer
                 renderer3D.setViewProjection(currentView, currentProj);
             }
