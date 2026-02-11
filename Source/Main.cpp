@@ -946,6 +946,18 @@ int main()
             float statsScale = 0.6f;
             float margin = 16.0f;
             textRenderer.drawText(frameStats, margin, margin, statsScale, digitColor);
+
+            // show depth/cull mode indicators at top-right
+            float indicatorScale = 0.6f;
+            std::string depthStr = std::string("Depth: ") + (depthTestEnabled ? "ON" : "OFF");
+            std::string cullStr = std::string("Cull:  ") + (cullEnabled ? "ON" : "OFF");
+            TextMetrics dm = textRenderer.measure(depthStr, indicatorScale);
+            TextMetrics cm = textRenderer.measure(cullStr, indicatorScale);
+            float iright = static_cast<float>(windowWidth) - margin;
+            float dx = iright - dm.width;
+            float dy = margin;
+            textRenderer.drawText(depthStr, dx, dy, indicatorScale, digitColor);
+            textRenderer.drawText(cullStr, iright - cm.width, dy + dm.height + 4.0f, indicatorScale, digitColor);
         }
 
         if (nameplateTexture != 0)
