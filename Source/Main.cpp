@@ -731,8 +731,8 @@ int main()
                     glm::mat4 invView = glm::inverse(view);
                     glm::vec3 camPos(invView[3][0], invView[3][1], invView[3][2]);
                     glm::vec3 camForward = glm::normalize(glm::vec3(invView * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
-                    // place toilet in front of camera for visibility during debug
-                    toiletPos = camPos + camForward * 200.0f;
+                    // place toilet behind camera (player) at a moderate distance
+                    toiletPos = camPos - camForward * 250.0f;
                     toiletPos.y = pos.y; // align to floor/bowl height
                 } else {
                     toiletPos = pos + glm::vec3(0.0f, 0.0f, -420.0f);
