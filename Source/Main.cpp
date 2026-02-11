@@ -953,8 +953,8 @@ int main()
 
             // show depth/cull mode indicators at top-right
             float indicatorScale = 0.6f;
-            std::string depthStr = std::string("Depth: ") + (depthTestEnabled ? "ON" : "OFF");
-            std::string cullStr = std::string("Cull:  ") + (cullEnabled ? "ON" : "OFF");
+            std::string depthStr = depthTestEnabled ? std::string("Depth: ON") : std::string("Depth: OFF");
+            std::string cullStr = cullEnabled ? std::string("Cull: ON") : std::string("Cull: OFF");
             TextMetrics dm = textRenderer.measure(depthStr, indicatorScale);
             TextMetrics cm = textRenderer.measure(cullStr, indicatorScale);
             float iright = static_cast<float>(windowWidth) - margin;
