@@ -74,3 +74,8 @@ packages/
 
 # IDE
 .vs/
+# JetBrains IDE files
+.idea/
+*.iml
+*.iws
+.idea_modules
