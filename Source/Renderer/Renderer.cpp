@@ -122,6 +122,9 @@ void Renderer::drawCube(const glm::mat4& model, const glm::vec3& color) {
   glBindTexture(GL_TEXTURE_2D, defaultTex_);
   GLint texLoc = glGetUniformLocation(phongProgram_, "tex");
   if (texLoc >= 0) glUniform1i(texLoc, 0);
+  // ensure flipV is disabled for colored cube draws
+  GLint flipLoc = glGetUniformLocation(phongProgram_, "flipV");
+  if (flipLoc >= 0) glUniform1i(flipLoc, 0);
 
   glBindVertexArray(cubeVao_);
   glDrawArrays(GL_TRIANGLES, 0, cubeVboCount_);
@@ -129,15 +132,123 @@ void Renderer::drawCube(const glm::mat4& model, const glm::vec3& color) {
   glUseProgram(0);
 }
 
+void Renderer::drawTexturedCube(const glm::mat4& model, GLuint texture) {
+  if (phongProgram_ == 0) return;
+  glUseProgram(phongProgram_);
+
+  GLint locModel = glGetUniformLocation(phongProgram_, "model");
+  if (locModel >= 0) glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(model));
+  GLint locMat = glGetUniformLocation(phongProgram_, "materialDiffuse");
+  if (locMat >= 0) glUniform3f(locMat, 1.0f, 1.0f, 1.0f);
+  GLint locSpec = glGetUniformLocation(phongProgram_, "materialSpecular");
+  if (locSpec >= 0) glUniform3f(locSpec, 0.2f, 0.2f, 0.2f);
+  GLint locSh = glGetUniformLocation(phongProgram_, "shininess");
+  if (locSh >= 0) glUniform1f(locSh, 8.0f);
+
+  // bind provided texture
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture ? texture : defaultTex_);
+  GLint texLoc = glGetUniformLocation(phongProgram_, "tex");
+  if (texLoc >= 0) glUniform1i(texLoc, 0);
+  // flip vertically so text appears upright on cube faces
+  GLint flipLoc = glGetUniformLocation(phongProgram_, "flipV");
+  if (flipLoc >= 0) glUniform1i(flipLoc, 1);
+  // set alpha to fully opaque for textured faces unless caller changes
+  GLint alphaLoc = glGetUniformLocation(phongProgram_, "uAlpha");
+  if (alphaLoc >= 0) glUniform1f(alphaLoc, 1.0f);
+
+  glBindVertexArray(cubeVao_);
+  glDrawArrays(GL_TRIANGLES, 0, cubeVboCount_);
+  glBindVertexArray(0);
+  glUseProgram(0);
+}
+
+void Renderer::drawParticle(const glm::mat4& model, const glm::vec3& color, float alpha) {
+  if (phongProgram_ == 0) return;
+  glUseProgram(phongProgram_);
+  GLint locModel = glGetUniformLocation(phongProgram_, "model");
+  if (locModel >= 0) glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(model));
+  GLint locMat = glGetUniformLocation(phongProgram_, "materialDiffuse");
+  if (locMat >= 0) glUniform3f(locMat, color.r, color.g, color.b);
+  GLint locSpec = glGetUniformLocation(phongProgram_, "materialSpecular");
+  if (locSpec >= 0) glUniform3f(locSpec, 0.2f, 0.2f, 0.2f);
+  GLint locSh = glGetUniformLocation(phongProgram_, "shininess");
+  if (locSh >= 0) glUniform1f(locSh, 8.0f);
+
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, defaultTex_);
+  GLint texLoc = glGetUniformLocation(phongProgram_, "tex");
+  if (texLoc >= 0) glUniform1i(texLoc, 0);
+  GLint flipLoc = glGetUniformLocation(phongProgram_, "flipV");
+  if (flipLoc >= 0) glUniform1i(flipLoc, 0);
+  GLint alphaLoc = glGetUniformLocation(phongProgram_, "uAlpha");
+  if (alphaLoc >= 0) glUniform1f(alphaLoc, alpha);
+
+  glBindVertexArray(cubeVao_);
+  glDrawArrays(GL_TRIANGLES, 0, cubeVboCount_);
+  glBindVertexArray(0);
+  glUseProgram(0);
+}
+
+void Renderer::drawHollowBoxAt(const glm::vec3& center, float width, float height, float depth, float thickness, const glm::vec3& color) {
+  // bottom
+  glm::mat4 model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(center.x, center.y - (height * 0.5f) + (thickness * 0.5f), center.z));
+  model = glm::scale(model, glm::vec3(width, thickness, depth));
+  drawCube(model, color);
+
+  // left wall
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(center.x - (width * 0.5f) + (thickness * 0.5f), center.y, center.z));
+  model = glm::scale(model, glm::vec3(thickness, height - thickness, depth));
+  drawCube(model, color);
+
+  // right wall
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(center.x + (width * 0.5f) - (thickness * 0.5f), center.y, center.z));
+  model = glm::scale(model, glm::vec3(thickness, height - thickness, depth));
+  drawCube(model, color);
+
+  // front wall (positive Z)
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(center.x, center.y, center.z + (depth * 0.5f) - (thickness * 0.5f)));
+  model = glm::scale(model, glm::vec3(width - thickness * 2.0f, height - thickness, thickness));
+  drawCube(model, color);
+
+  // back wall (negative Z)
+  model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(center.x, center.y, center.z - (depth * 0.5f) + (thickness * 0.5f)));
+  model = glm::scale(model, glm::vec3(width - thickness * 2.0f, height - thickness, thickness));
+  drawCube(model, color);
+}
+
+void Renderer::drawHollowCylinderAt(const glm::vec3& center, float radius, float height, float thickness, int segments, const glm::vec3& color) {
+  // approximate cylinder wall with segments made from thin quads (drawn as cubes)
+  if (segments < 6) segments = 6;
+  float segmentArc = 2.0f * 3.14159265f / static_cast<float>(segments);
+  float segWidth = radius * segmentArc; // approximate arc length
+  float innerR = radius - thickness * 0.5f;
+  for (int i = 0; i < segments; ++i) {
+    float angle = (i + 0.5f) * segmentArc;
+    float cx = center.x + innerR * cos(angle);
+    float cz = center.z + innerR * sin(angle);
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(cx, center.y, cz));
+    model = glm::rotate(model, -angle, glm::vec3(0.0f, 1.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(segWidth, height - thickness, thickness));
+    drawCube(model, color);
+  }
+}
+
 void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
   // compute camera position from inverse view
   glm::mat4 invView = glm::inverse(view);
   glm::vec3 camPos(invView[3][0], invView[3][1], invView[3][2]);
 
-  // default light
-  glm::vec3 lightPos = glm::vec3(0.0f, 400.0f, 400.0f);
+  // default light (moved closer and made stronger for visible shading)
+  glm::vec3 lightPos = glm::vec3(0.0f, 200.0f, 200.0f);
   glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-  float lightIntensity = 1.0f;
+  float lightIntensity = 1.5f;
 
   if (phongProgram_ != 0) {
     glUseProgram(phongProgram_);
@@ -152,6 +263,16 @@ void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
     if (lp >= 0) glUniform3f(lp, lightPos.x, lightPos.y, lightPos.z);
     if (lc >= 0) glUniform3f(lc, lightColor.r, lightColor.g, lightColor.b);
     if (li >= 0) glUniform1f(li, lightIntensity);
+
+    // lamp (optional)
+    GLint lpp = glGetUniformLocation(phongProgram_, "lampLight.position");
+    GLint lpc = glGetUniformLocation(phongProgram_, "lampLight.color");
+    GLint lpi = glGetUniformLocation(phongProgram_, "lampLight.intensity");
+    GLint len = glGetUniformLocation(phongProgram_, "lampEnabled");
+    if (lpp >= 0) glUniform3f(lpp, lampPos_.x, lampPos_.y, lampPos_.z);
+    if (lpc >= 0) glUniform3f(lpc, lampColor_.x, lampColor_.y, lampColor_.z);
+    if (lpi >= 0) glUniform1f(lpi, lampIntensity_);
+    if (len >= 0) glUniform1i(len, lampEnabled_ ? 1 : 0);
 
     GLint viewPosLoc = glGetUniformLocation(phongProgram_, "viewPos");
     if (viewPosLoc >= 0) glUniform3f(viewPosLoc, camPos.x, camPos.y, camPos.z);
@@ -170,10 +291,27 @@ void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
     if (lc >= 0) glUniform3f(lc, lightColor.r, lightColor.g, lightColor.b);
     if (li >= 0) glUniform1f(li, lightIntensity);
 
+    // lamp for blinn shader as well
+    GLint lpp = glGetUniformLocation(blinnProgram_, "lampLight.position");
+    GLint lpc = glGetUniformLocation(blinnProgram_, "lampLight.color");
+    GLint lpi = glGetUniformLocation(blinnProgram_, "lampLight.intensity");
+    GLint len = glGetUniformLocation(blinnProgram_, "lampEnabled");
+    if (lpp >= 0) glUniform3f(lpp, lampPos_.x, lampPos_.y, lampPos_.z);
+    if (lpc >= 0) glUniform3f(lpc, lampColor_.x, lampColor_.y, lampColor_.z);
+    if (lpi >= 0) glUniform1f(lpi, lampIntensity_);
+    if (len >= 0) glUniform1i(len, lampEnabled_ ? 1 : 0);
+
     GLint viewPosLoc = glGetUniformLocation(blinnProgram_, "viewPos");
     if (viewPosLoc >= 0) glUniform3f(viewPosLoc, camPos.x, camPos.y, camPos.z);
   }
   glUseProgram(0);
+}
+
+void Renderer::setLampLight(const glm::vec3& pos, const glm::vec3& color, float intensity, bool enabled) {
+  lampPos_ = pos;
+  lampColor_ = color;
+  lampIntensity_ = intensity;
+  lampEnabled_ = enabled;
 }
 
 std::string Renderer::loadShaderSource(const char* path) {

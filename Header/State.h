@@ -20,6 +20,7 @@ struct AppState
     float waterFillPerSecond = 0.12f;
     float waterAccum = 0.0f;
     bool prevSpacePressed = false;
+    bool holdingBowl = false; // true when user clicked and picked up the bowl
 };
 
 void handlePowerToggle(AppState& state, double mouseX, double mouseY, bool mouseDown, const CircleShape& lamp);
