@@ -79,6 +79,9 @@ int main()
         return endProgram("Neuspeh pri inicijalizaciji 3D renderera.");
     }
 
+    // connect 2D renderer to 3D renderer so 2D calls produce 3D placeholders
+    renderer.set3DRenderer(&renderer3D);
+
     ResizeContext resizeCtx;
     Camera3D camera(window, fbWidth, fbHeight);
     resizeCtx.renderer = &renderer;
