@@ -3,6 +3,7 @@
 #include <string>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+#include <vector>
 
 class Renderer {
 public:
@@ -52,6 +53,12 @@ private:
   float lampIntensity_ = 0.0f;
   bool lampEnabled_ = false;
 
+  // loaded models
+  struct ModelMesh { unsigned int vao; unsigned int vbo; int vertCount; };
+  std::vector<ModelMesh> models_;
+
 public:
   void setLampLight(const glm::vec3& pos, const glm::vec3& color, float intensity, bool enabled);
+  int loadOBJModel(const std::string& path);
+  void drawModel(int modelId, const glm::mat4& model, const glm::vec3& color);
 };
