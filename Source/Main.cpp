@@ -734,8 +734,8 @@ int main()
                     glm::mat4 invView = glm::inverse(view);
                     glm::vec3 camPos(invView[3][0], invView[3][1], invView[3][2]);
                     glm::vec3 camForward = glm::normalize(glm::vec3(invView * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
-                    toiletWorldPos = camPos - camForward * 250.0f; // place 250 units behind initial camera
-                    toiletWorldPos.y = pos.y; // align to floor/bowl height
+                    toiletWorldPos = camPos - camForward * 300.0f; // place 300 units behind initial camera
+                    toiletWorldPos.y = pos.y; // align to bowl height
                     toiletWorldSet = true;
                 }
                 glm::vec3 toiletPos = toiletWorldSet ? toiletWorldPos : (pos + glm::vec3(0.0f, 0.0f, -420.0f));
@@ -743,8 +743,10 @@ int main()
                 if (toiletModelId >= 0) {
                     glm::mat4 m = glm::mat4(1.0f);
                     m = glm::translate(m, toiletPos);
-                    // scale to roughly match previous size
-                    m = glm::scale(m, glm::vec3(wworld * 1.2f, bowlFullHeight * 1.2f, wworld * 1.2f));
+                    m = glm::rotate(m, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+                    m = glm::rotate(m, glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+                    // scale down a bit so model fits the scene
+                    m = glm::scale(m, glm::vec3(6.0f));
                     renderer3D.drawModel(toiletModelId, m, glm::vec3(0.95f, 0.95f, 0.97f));
                 } else {
                     glm::vec3 toiletColor = glm::vec3(0.95f, 0.95f, 0.97f);
