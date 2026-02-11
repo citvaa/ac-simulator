@@ -106,7 +106,8 @@ void Renderer::render() {
   // construct model transform for marker (half AC size)
   glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), sceneLightPos_);
   lightModel = glm::scale(lightModel, glm::vec3(120.0f, 50.0f, 40.0f));
-  glm::vec3 markerColor = glm::vec3(1.0f, 1.0f, 0.0f) * sceneLightIntensity_;
+  // use constant yellow so marker never disappears if intensity changes
+  glm::vec3 markerColor = glm::vec3(1.0f, 1.0f, 0.0f);
 
   // draw on top of scene
   glDisable(GL_DEPTH_TEST);
@@ -128,6 +129,8 @@ void Renderer::drawCube(const glm::mat4& model, const glm::vec3& color) {
   if (locSpec >= 0) glUniform3f(locSpec, 0.3f, 0.3f, 0.3f);
   GLint locSh = glGetUniformLocation(phongProgram_, "shininess");
   if (locSh >= 0) glUniform1f(locSh, 32.0f);
+  GLint alphaLoc = glGetUniformLocation(phongProgram_, "uAlpha");
+  if (alphaLoc >= 0) glUniform1f(alphaLoc, 1.0f);
 
   // bind default texture
   glActiveTexture(GL_TEXTURE0);
@@ -368,10 +371,10 @@ void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
   glm::mat4 invView = glm::inverse(view);
   glm::vec3 camPos(invView[3][0], invView[3][1], invView[3][2]);
 
-  // default light: fixed position above-left of AC (world coords) so marker is in air left-top of AC
-  glm::vec3 lightPos = glm::vec3(-250.0f, 200.0f, 40.0f);
-  glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-  float lightIntensity = 0.75f;
+  // use stored scene light (set via setSceneLight) so it remains independent from AC state
+  glm::vec3 lightPos = sceneLightPos_;
+  glm::vec3 lightColor = sceneLightColor_;
+  float lightIntensity = sceneLightIntensity_;
 
   if (phongProgram_ != 0) {
     glUseProgram(phongProgram_);
@@ -400,10 +403,6 @@ void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
     GLint viewPosLoc = glGetUniformLocation(phongProgram_, "viewPos");
     if (viewPosLoc >= 0) glUniform3f(viewPosLoc, camPos.x, camPos.y, camPos.z);
 
-    // store scene light info for visualization later (draw after scene so it's on top)
-    sceneLightPos_ = lightPos;
-    sceneLightColor_ = lightColor;
-    sceneLightIntensity_ = lightIntensity;
     // log once so user can inspect coordinates (helpful for debugging visibility)
     static bool lightLogged = false;
     if (!lightLogged) {
@@ -446,7 +445,8 @@ void Renderer::setViewProjection(const glm::mat4& view, const glm::mat4& proj) {
 void Renderer::setSceneLight(const glm::vec3& pos, const glm::vec3& color, float intensity) {
   sceneLightPos_ = pos;
   sceneLightColor_ = color;
-  sceneLightIntensity_ = intensity;
+  // keep scene light always on, even if caller passes 0
+  sceneLightIntensity_ = (intensity > 0.0f) ? intensity : 2.5f;
 }
 
 void Renderer::setLampLight(const glm::vec3& pos, const glm::vec3& color, float intensity, bool enabled) {

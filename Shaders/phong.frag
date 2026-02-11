@@ -26,22 +26,27 @@ void main() {
   vec3 viewDir = normalize(viewPos - FragPos);
   float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
 
+  float mainIntensity = 1.5; // always-on scene light
   vec3 ambient = 0.25 * materialDiffuse * light.color;
-  vec3 diffuse = diff * materialDiffuse * light.color * light.intensity;
-  vec3 specular = spec * materialSpecular * light.color * light.intensity;
+  vec3 diffuse = diff * materialDiffuse * light.color * mainIntensity;
+  vec3 specular = spec * materialSpecular * light.color * mainIntensity;
   vec3 color = ambient + diffuse + specular;
 
   // lamp contribution (additive)
   if (lampEnabled) {
-    vec3 lampDir = normalize(lampLight.position - FragPos);
+    vec3 lampVec = lampLight.position - FragPos;
+    float lampDist = length(lampVec);
+    vec3 lampDir = normalize(lampVec);
     float diff2 = max(dot(norm, lampDir), 0.0);
     vec3 reflectDir2 = reflect(-lampDir, norm);
     float spec2 = pow(max(dot(viewDir, reflectDir2), 0.0), shininess);
-    vec3 diffuse2 = diff2 * materialDiffuse * lampLight.color * lampLight.intensity;
-    vec3 specular2 = spec2 * materialSpecular * lampLight.color * lampLight.intensity;
+    // strong attenuation so lamp only affects a small area nearby
+    float attenuation = 1.0 / (1.0 + 0.02 * lampDist * lampDist);
+    vec3 diffuse2 = diff2 * materialDiffuse * lampLight.color * lampLight.intensity * attenuation;
+    vec3 specular2 = spec2 * materialSpecular * lampLight.color * lampLight.intensity * attenuation;
     color += diffuse2 + specular2;
     // small ambient boost from lamp
-    color += 0.03 * lampLight.color * lampLight.intensity;
+    color += 0.03 * lampLight.color * lampLight.intensity * attenuation;
   }
 
   vec4 texColor = texture(tex, TexCoord);
