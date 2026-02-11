@@ -738,7 +738,7 @@ int main()
                     glm::vec3 camPos(invView[3][0], invView[3][1], invView[3][2]);
                     glm::vec3 camForward = glm::normalize(glm::vec3(invView * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f)));
                     toiletWorldPos = camPos - camForward * 300.0f; // place 300 units behind initial camera
-                    toiletWorldPos.y = pos.y + (bowlFullHeight * 0.5f); // raise so toilet bottom aligns with bowl
+                    toiletWorldPos.y = pos.y + bowlFullHeight; // raise so toilet bottom aligns with bowl
                     toiletWorldSet = true;
                 }
                 glm::vec3 toiletPos = toiletWorldSet ? toiletWorldPos : (pos + glm::vec3(0.0f, 0.0f, -420.0f));
