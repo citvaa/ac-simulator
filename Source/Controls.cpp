@@ -19,12 +19,23 @@ void drawHalfArrow(Renderer2D& renderer, const RectShape& button, bool isUp, con
     float bx = button.x + margin;
     float cxv = button.x + button.w - margin;
 
-    if (isUp)
+    // Render arrow as stacked rectangles so it appears correctly in 3D mode
+    int steps = 8;
+    float stepH = (bottomY - topY) / static_cast<float>(steps);
+    float maxW = button.w - 2.0f * margin;
+    for (int i = 0; i < steps; ++i)
     {
-        renderer.drawTriangle(ax, topY, bx, bottomY, cxv, bottomY, arrowColor);
-    }
-    else
-    {
-        renderer.drawTriangle(ax, bottomY, bx, topY, cxv, topY, arrowColor);
+        float t = (static_cast<float>(i) + 1.0f) / static_cast<float>(steps);
+        float w = maxW * t;
+        float rx = cx - w * 0.5f;
+        float ry;
+        if (isUp) {
+            ry = topY + static_cast<float>(i) * stepH;
+        } else {
+            // stack from bottom upwards for down arrow
+            ry = bottomY - (static_cast<float>(i) + 1.0f) * stepH;
+        }
+        // slightly shrink height so stacks look triangular
+        renderer.drawRect(rx, ry, w, stepH * 0.9f, arrowColor);
     }
 }
