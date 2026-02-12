@@ -1,7 +1,7 @@
 #include "../Header/Renderer2D.h"
 
 #include "../Header/Util.h"
-#include "Renderer/Renderer.h"
+#include "Renderer.h"
 
 #include <cmath>
 #include <vector>
