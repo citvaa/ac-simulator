@@ -7,8 +7,8 @@
 #include "../Header/TemperatureUI.h"
 #include "../Header/Controls.h"
 #include "../Header/TextRenderer.h"
-#include "Camera/Camera3D.h"
-#include "Renderer/Renderer.h"
+#include "Camera3D.h"
+#include "Renderer.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
