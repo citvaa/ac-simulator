@@ -5,8 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Sources
 file(GLOB_RECURSE AC_SIM_SRCS "${CMAKE_SOURCE_DIR}/Source/*.cpp")
-add_executable(ac-simulator ${AC_SIM_SRCS}
-        Source/Camera/Camera3D.cpp)
+add_executable(ac-simulator ${AC_SIM_SRCS})
 
 target_include_directories(ac-simulator PRIVATE "${CMAKE_SOURCE_DIR}/Header" /opt/homebrew/include /usr/local/include)
 
